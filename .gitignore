@@ -14,7 +14,7 @@
 # 環境変数（APIキーなど）は絶対にGitHubに上げない
 .env*
 
-# 社内資料（OLPの資料など）はGitHubに上げない
+# 社内資料（行動指針の資料など）はGitHubに上げない
 /docs/private/
 
 # Vercel

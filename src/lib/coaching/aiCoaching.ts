@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { WRITING_RULES, askForJson } from "@/lib/claude";
 import { axisLabel } from "@/lib/labels";
-import { matchPrinciple, type Principle } from "@/lib/olp";
+import { matchPrinciple, type Principle } from "@/lib/principles";
 import type { CoachingDraft, CoachingInput } from "./types";
 
 const SYSTEM = `あなたはカスタマーサポート（CS）チームのマネージャーを補佐するコーチです。
@@ -18,7 +18,7 @@ const SYSTEM = `あなたはカスタマーサポート（CS）チームのマ�
   - hypothesis：考えられる理由。必ず仮説として書く（「〜かもしれません」）。本人の性格や姿勢を決めつけない
   - tryThis：来週から試せる具体的な行動（1つ）
   - examplePhrase：お客様に使える言い換えの例文（「」で囲む）。思いつかなければ空文字
-  - principle：行動指針（OLP）の一覧にある項目名を1つ。一覧がないか、合うものがなければ空文字
+  - principle：行動指針（Principles）の一覧にある項目名を1つ。一覧がないか、合うものがなければ空文字
 - questions：1on1 で本人に聞く質問（3〜4個）。答えを押しつけず、本人に考えてもらう問いかけ。うまくいった場面から聞き始める
 - nextCheck：次の数週間で見ること（1文）
 - messageToEmployee：本人に送るメールの書き出し（opening：1〜2文）と締め（closing：1文）。感謝から始め、前向きに
@@ -74,8 +74,8 @@ export async function coachingWithClaude(input: CoachingInput, principles: Princ
     ...(input.negatives.length > 0 ? ["「悪い」の声：", ...input.negatives.map(quote)] : []),
     "",
     principles.length > 0
-      ? ["【行動指針（OLP）】", ...principles.map((p) => `- ${p.name}：${p.description}`)].join("\n")
-      : "【行動指針（OLP）】なし（principle は空文字にする）",
+      ? ["【行動指針（Principles）】", ...principles.map((p) => `- ${p.name}：${p.description}`)].join("\n")
+      : "【行動指針（Principles）】なし（principle は空文字にする）",
     "",
     input.memo ? `【マネージャーの行動メモ】\n<memo>\n${input.memo}\n</memo>` : "【マネージャーの行動メモ】なし",
   ].join("\n");

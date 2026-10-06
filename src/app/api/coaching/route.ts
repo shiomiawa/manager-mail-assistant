@@ -4,7 +4,7 @@ import { describeAIError, isMockAI } from "@/lib/claude";
 import { coachingWithClaude } from "@/lib/coaching/aiCoaching";
 import { mockCoachingDraft } from "@/lib/coaching/mockCoaching";
 import type { CoachingInput } from "@/lib/coaching/types";
-import { loadPrinciples } from "@/lib/olp";
+import { loadPrinciples } from "@/lib/principles";
 import { checkPasscode, refundQuota, takeQuota } from "@/lib/usageGuard";
 
 const MAX_BODY_LENGTH = 50_000;

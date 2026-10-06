@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { loadPrinciples, matchPrinciple } from "./olp";
+import { loadPrinciples, matchPrinciple } from "./principles";
 
-describe("行動指針（OLP）", () => {
+describe("行動指針（Principles）", () => {
   it("名前が空の項目は使わない", () => {
     expect(loadPrinciples({ principles: [{ id: 1, name: "", description: "" }, { id: 2, name: " 項目A ", description: "説明" }] })).toEqual([
       { id: 2, name: "項目A", description: "説明" },

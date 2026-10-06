@@ -55,7 +55,7 @@ describe("個人向けメール", () => {
     expect(renderEmailHtml(doc)).toContain("—");
   });
 
-  it("OLPの項目名があれば［］で添える", () => {
+  it("行動指針の項目名があれば［］で添える", () => {
     const e = employee("E005");
     const doc = buildIndividualEmail(report, e, mockIndividualComment(report, e, ["項目A"]));
     expect(renderEmailText(doc)).toContain("［項目A］");

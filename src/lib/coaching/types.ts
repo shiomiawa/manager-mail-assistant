@@ -27,7 +27,7 @@ export type CoachingDraft = {
     hypothesis: string; // 考えられる理由（仮説。断定しない）
     tryThis: string; // 試すこと（具体的な行動）
     examplePhrase: string; // 言い換えの例文（なければ空文字）
-    principle: string; // 関係する行動指針（OLP）の項目名（なければ空文字）
+    principle: string; // 関係する行動指針（Principles）の項目名（なければ空文字）
   }[];
   questions: string[]; // 1on1 で聞く質問（本人に考えてもらう問いかけ）
   nextCheck: string; // 次の数週間で見ること（1文）

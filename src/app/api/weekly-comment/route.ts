@@ -1,7 +1,7 @@
 // 週次レポートのコメント（AIが書く区画）を返す
 // USE_MOCK_AI が "false" のときだけ Claude を使う。それ以外はダミー（費用はかからない）
 import { describeAIError, isMockAI } from "@/lib/claude";
-import { loadPrinciples } from "@/lib/olp";
+import { loadPrinciples } from "@/lib/principles";
 import { individualCommentWithClaude, teamCommentWithClaude } from "@/lib/report/aiComments";
 import { mockIndividualComment, mockTeamComment } from "@/lib/report/mockComments";
 import { checkPasscode, refundQuota, takeQuota } from "@/lib/usageGuard";

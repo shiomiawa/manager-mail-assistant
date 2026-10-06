@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { WRITING_RULES, askForJson } from "@/lib/claude";
 import { axisLabel } from "@/lib/labels";
-import { matchPrinciple, type Principle } from "@/lib/olp";
+import { matchPrinciple, type Principle } from "@/lib/principles";
 import type { IndividualComment, TeamComment } from "./comments";
 import { MAX_BULLETS } from "./comments";
 import { formatMinutes, formatNumber, formatSatisfaction, formatScore } from "./format";
@@ -88,7 +88,7 @@ const INDIVIDUAL_SYSTEM = `あなたはカスタマーサポート（CS）チー
 - nextSteps（次に向けて）：1〜3項目。各項目は2〜3文（100字程度まで）
   - お客様の「悪い」の声や、目標に届かなかった指標があれば、推移も踏まえて、責めずに問いかけ・提案の形で書く
   - 在籍期間を踏まえる（例：経験の浅い人には相談しやすい声かけ、経験の長い人にはコツの共有のお願い）。ただし在籍期間だけで期待や評価を決めつけない
-  - principle には、行動指針（OLP）の一覧にある項目名を1つ入れる。一覧がないときや、合うものがないときは空文字
+  - principle には、行動指針（Principles）の一覧にある項目名を1つ入れる。一覧がないときや、合うものがないときは空文字
 - closing（締めの一言）：1文
 - マネージャーの行動メモがあれば、その具体的な行動を踏まえる。メモがないときは、数字だけで行動を推測しない
 
@@ -134,8 +134,8 @@ export async function individualCommentWithClaude(
     ...voiceLines(employee.voice, "individual"),
     "",
     principles.length > 0
-      ? ["【行動指針（OLP）】", ...principles.map((p) => `- ${p.name}：${p.description}`)].join("\n")
-      : "【行動指針（OLP）】なし（principle は空文字にする）",
+      ? ["【行動指針（Principles）】", ...principles.map((p) => `- ${p.name}：${p.description}`)].join("\n")
+      : "【行動指針（Principles）】なし（principle は空文字にする）",
     "",
     memo.trim() ? `【マネージャーの行動メモ】\n<memo>\n${memo.trim()}\n</memo>` : "【マネージャーの行動メモ】なし",
   ];

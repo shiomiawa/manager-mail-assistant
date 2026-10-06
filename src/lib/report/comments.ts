@@ -17,8 +17,8 @@ export type TeamComment = {
 /** 個人向けメールのAIコメント */
 export type IndividualComment = {
   goodPoints: string[]; // よかった点（2〜3文。Kudosをほめ、推移にも触れる）
-  // 次に向けて（2〜3文。OLPの観点での声かけ。改善点は責めずに、推移も踏まえた問いかけ・提案の形）
-  // principle は config/olp.json の項目名（なければ空文字）
+  // 次に向けて（2〜3文。行動指針の観点での声かけ。改善点は責めずに、推移も踏まえた問いかけ・提案の形）
+  // principle は config/principles.json の項目名（なければ空文字）
   nextSteps: { principle: string; text: string }[];
   closing: string;
 };

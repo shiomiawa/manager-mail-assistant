@@ -1,5 +1,5 @@
-// config/olp.json（行動指針12項目）の読み込み。サーバー側で使う
-import olpJson from "../../config/olp.json";
+// config/principles.json（行動指針12項目）の読み込み。サーバー側で使う
+import principlesJson from "../../config/principles.json";
 
 export type Principle = { id: number; name: string; description: string };
 
@@ -14,7 +14,7 @@ export function matchPrinciple(value: string, names: string[]): string {
 }
 
 /** 名前が入っている項目だけを返す（空欄の項目はコメントに使わない） */
-export function loadPrinciples(source: unknown = olpJson): Principle[] {
+export function loadPrinciples(source: unknown = principlesJson): Principle[] {
   const list = (source as { principles?: unknown }).principles;
   if (!Array.isArray(list)) return [];
   return list
