@@ -4,10 +4,17 @@ import { useMemo, useRef, useState } from "react";
 import { copyRich, copyText } from "@/lib/clipboard";
 import { renderEmailHtml, renderEmailPage, renderEmailText, type EmailDocument } from "@/lib/email/template";
 
-type Props = { doc: EmailDocument; mock: boolean };
+type Props = {
+  doc: EmailDocument;
+  mock: boolean;
+  /** ダミーのときに出す説明（省略時は週次レポート向けの説明） */
+  mockNote?: string;
+};
+
+const DEFAULT_MOCK_NOTE = "コメント部分はダミーです（AIはまだつないでいません）。数字と要点はデータから計算した本物です。";
 
 /** メールのプレビューと、件名・本文のコピー。自動送信はしない */
-export function EmailPreview({ doc, mock }: Props) {
+export function EmailPreview({ doc, mock, mockNote = DEFAULT_MOCK_NOTE }: Props) {
   const page = useMemo(() => renderEmailPage(doc), [doc]);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [width, setWidth] = useState<"pc" | "phone">("pc");
@@ -33,7 +40,7 @@ export function EmailPreview({ doc, mock }: Props) {
       <div className="space-y-3 border-b border-slate-200 p-4">
         {mock && (
           <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            コメント部分はダミーです（AIはまだつないでいません）。数字と要点はデータから計算した本物です。
+            {mockNote}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">

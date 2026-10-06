@@ -1,4 +1,4 @@
-import { WeeklyReportPanel } from "@/components/WeeklyReportPanel";
+import { AppTabs } from "@/components/AppTabs";
 
 export default function Home() {
   return (
@@ -10,15 +10,7 @@ export default function Home() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-        <nav className="mb-4 flex gap-1 border-b border-slate-300 text-sm" aria-label="機能">
-          <span className="rounded-t border border-b-0 border-slate-300 bg-white px-4 py-2 font-bold text-brand-800">
-            週次パフォーマンスレポート
-          </span>
-          <span className="px-4 py-2 text-slate-400" title="次に作ります">
-            会議メモから作成（準備中）
-          </span>
-        </nav>
-        <WeeklyReportPanel />
+        <AppTabs />
       </main>
     </>
   );

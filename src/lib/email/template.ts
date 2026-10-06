@@ -137,7 +137,7 @@ function renderBlock(block: EmailBlock): string {
             `<tr>${row
               .map(
                 (cell, i) =>
-                  `<td align="${align(i)}" style="padding:6px 8px;font-size:13px;color:${C.text};border-bottom:1px solid ${C.border};${i === 0 ? "" : "white-space:nowrap;"}">${escapeHtml(cell)}</td>`,
+                  `<td align="${align(i)}" style="padding:6px 8px;font-size:13px;color:${C.text};border-bottom:1px solid ${C.border};${align(i) === "left" ? "" : "white-space:nowrap;"}">${escapeHtml(cell)}</td>`,
               )
               .join("")}</tr>`,
         )
