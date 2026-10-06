@@ -31,13 +31,21 @@ export async function askForJson<T extends z.ZodType>(options: {
   maxTokens?: number;
 }): Promise<{ output: z.infer<T>; usage: Usage; model: string }> {
   const model = claudeModel();
-  const response = await getClient().messages.parse({
-    model,
-    max_tokens: options.maxTokens ?? 8000,
-    system: options.system,
-    messages: [{ role: "user", content: options.user }],
-    output_config: { format: zodOutputFormat(options.schema) },
-  });
+  let response;
+  try {
+    response = await getClient().messages.parse({
+      model,
+      max_tokens: options.maxTokens ?? 8000,
+      system: options.system,
+      messages: [{ role: "user", content: options.user }],
+      output_config: { format: zodOutputFormat(options.schema) },
+    });
+  } catch (error) {
+    // 通信やAPIのエラーはそのまま。答えが決めた形に合わなかったときは、分かりやすいエラーにする
+    if (error instanceof Anthropic.APIError || error instanceof AIConfigError) throw error;
+    console.error("AIの回答の形が合いませんでした:", error instanceof Error ? error.message.slice(0, 500) : error);
+    throw new AIResponseError("AIの回答を読み取れませんでした。もう一度お試しください。");
+  }
   if (response.stop_reason === "refusal") throw new AIResponseError("AIが下書きの作成を断りました。内容を見直してください。");
   if (response.stop_reason === "max_tokens") throw new AIResponseError("AIの回答が長すぎて途中で切れました。");
   const output = response.parsed_output;

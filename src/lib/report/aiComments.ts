@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { WRITING_RULES, askForJson } from "@/lib/claude";
 import { axisLabel } from "@/lib/labels";
-import type { Principle } from "@/lib/olp";
+import { matchPrinciple, type Principle } from "@/lib/olp";
 import type { IndividualComment, TeamComment } from "./comments";
 import { MAX_BULLETS } from "./comments";
 import { formatMinutes, formatNumber, formatSatisfaction, formatScore } from "./format";
@@ -107,7 +107,7 @@ export async function individualCommentWithClaude(
     goodPoints: z.array(z.string()),
     nextSteps: z.array(
       z.object({
-        principle: names.length > 0 ? z.enum(["", ...names] as [string, ...string[]]) : z.literal(""),
+        principle: z.string(), // あとで一覧の名前に合わせる
         text: z.string(),
       }),
     ),
@@ -147,7 +147,7 @@ export async function individualCommentWithClaude(
   });
   const comment: IndividualComment = {
     goodPoints: output.goodPoints.slice(0, 2),
-    nextSteps: output.nextSteps.slice(0, MAX_BULLETS),
+    nextSteps: output.nextSteps.slice(0, MAX_BULLETS).map((s) => ({ ...s, principle: matchPrinciple(s.principle, names) })),
     closing: output.closing,
   };
   return { comment, usage, model };

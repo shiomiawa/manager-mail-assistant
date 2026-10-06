@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
+import { WorkbookLoader } from "@/components/WorkbookLoader";
 import { postJson } from "@/lib/apiClient";
 import { buildWeeklyReport, listWeeks } from "@/lib/report/aggregate";
 import type { CommentResponse, IndividualComment, TeamComment } from "@/lib/report/comments";
@@ -15,82 +16,37 @@ import {
   formatWeekRange,
 } from "@/lib/report/format";
 import { loadTargets } from "@/lib/report/targets";
-import type { CustomerComment, PerformanceRow, WeeklyReport } from "@/lib/report/types";
+import type { WeeklyReport } from "@/lib/report/types";
 import { buildIndividualEmail, buildTeamEmail } from "@/lib/report/weeklyEmails";
+import { useWorkbook } from "@/lib/workbookStore";
 
-const SAMPLE_URL = "/sample/cs-performance-sample.xlsx";
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_MEMO_LENGTH = 1000;
 const targets = loadTargets();
 
+// version：どのデータで作った下書きか（データを読み込み直したら、古い下書きは出さない）
 type Draft =
-  | { type: "team"; comment: TeamComment; mock: boolean }
-  | { type: "individual"; employeeId: string; comment: IndividualComment; mock: boolean };
+  | { version: number; type: "team"; comment: TeamComment; mock: boolean }
+  | { version: number; type: "individual"; employeeId: string; comment: IndividualComment; mock: boolean };
 
 export function WeeklyReportPanel() {
-  const [rows, setRows] = useState<PerformanceRow[] | null>(null);
-  const [comments, setComments] = useState<CustomerComment[]>([]);
-  const [fileName, setFileName] = useState("");
-  const [weekStart, setWeekStart] = useState("");
-  const [loadError, setLoadError] = useState<string[] | null>(null);
-  const [loading, setLoading] = useState(false);
-
+  const { rows, comments, version } = useWorkbook();
+  const [selectedWeek, setSelectedWeek] = useState("");
   const [mode, setMode] = useState<"team" | "individual">("team");
-  const [employeeId, setEmployeeId] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [memo, setMemo] = useState("");
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [rawDraft, setDraft] = useState<Draft | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState("");
 
   const weeks = useMemo(() => (rows ? listWeeks(rows) : []), [rows]);
+  // 選んだ週がいまのデータにないとき（読み込み直したときなど）は、最新の週にする
+  const weekStart = weeks.some((w) => w.weekStart === selectedWeek) ? selectedWeek : (weeks.at(-1)?.weekStart ?? "");
   const report = useMemo<WeeklyReport | null>(
     () => (rows && weekStart ? buildWeeklyReport(rows, targets, weekStart, comments) : null),
     [rows, weekStart, comments],
   );
-
-  async function load(data: ArrayBuffer, name: string) {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      // Excelを読む部品は大きいので、使うときに読み込む
-      const { parseWorkbook, WorkbookParseError } = await import("@/lib/report/parseWorkbook");
-      try {
-        const parsed = await parseWorkbook(data);
-        const parsedWeeks = listWeeks(parsed.rows);
-        setRows(parsed.rows);
-        setComments(parsed.comments);
-        setFileName(name);
-        setWeekStart(parsedWeeks.at(-1)!.weekStart);
-        setEmployeeId("");
-        setDraft(null);
-      } catch (error) {
-        setLoadError(error instanceof WorkbookParseError ? error.messages : ["ファイルを読み込めませんでした。"]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onFile(file: File | undefined) {
-    if (!file) return;
-    if (file.size > MAX_FILE_SIZE) {
-      setLoadError(["ファイルが大きすぎます（5MBまで）。"]);
-      return;
-    }
-    await load(await file.arrayBuffer(), file.name);
-  }
-
-  async function onSample() {
-    setLoading(true);
-    try {
-      const response = await fetch(SAMPLE_URL);
-      if (!response.ok) throw new Error();
-      await load(await response.arrayBuffer(), "サンプルデータ（架空の20名・6週間）");
-    } catch {
-      setLoadError(["サンプルデータを読み込めませんでした。"]);
-      setLoading(false);
-    }
-  }
+  const employeeId = report?.employees.some((e) => e.employeeId === selectedEmployee) ? selectedEmployee : "";
+  const draft = rawDraft && rawDraft.version === version ? rawDraft : null;
 
   async function onDraft() {
     if (!report) return;
@@ -103,7 +59,7 @@ export function WeeklyReportPanel() {
     try {
       if (mode === "team") {
         const result = await postJson<CommentResponse<TeamComment>>("/api/weekly-comment", { type: "team", report });
-        setDraft({ type: "team", comment: result.comment, mock: result.mock });
+        setDraft({ version, type: "team", comment: result.comment, mock: result.mock });
       } else {
         const result = await postJson<CommentResponse<IndividualComment>>("/api/weekly-comment", {
           type: "individual",
@@ -111,7 +67,7 @@ export function WeeklyReportPanel() {
           employeeId,
           memo,
         });
-        setDraft({ type: "individual", employeeId, comment: result.comment, mock: result.mock });
+        setDraft({ version, type: "individual", employeeId, comment: result.comment, mock: result.mock });
       }
     } catch (error) {
       setDraftError(error instanceof Error ? error.message : "下書きを作れませんでした。");
@@ -135,47 +91,8 @@ export function WeeklyReportPanel() {
 
   return (
     <div className="space-y-6">
-      {/* 1. データの読み込み */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">1. データを読み込む</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          日付・社員ID・対応チャンネル・対応件数・平均対応時間・平均満足度・週開始日・Week番号（・在籍期間）の列があるExcelを選んでください。「コメント」シート（お客様のコメント）があれば、Kudosと改善点もメールに入れます。ファイルはこのブラウザの中だけで読み込みます。
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded bg-brand-700 px-4 py-2 text-sm font-bold text-white hover:bg-brand-800">
-            Excelファイルを選ぶ
-            <input
-              type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="sr-only"
-              onChange={(event) => {
-                void onFile(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void onSample()}
-            className="rounded border border-brand-600 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50"
-          >
-            サンプルデータを使う
-          </button>
-          {loading && <span className="text-sm text-slate-500">読み込み中…</span>}
-          {fileName && !loading && (
-            <span className="text-sm text-slate-600">
-              読み込み済み：{fileName}（お客様コメント {comments.length.toLocaleString("ja-JP")}件）
-            </span>
-          )}
-        </div>
-        {loadError && (
-          <div role="alert" className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            {loadError.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* 1. データの読み込み（Survey Coaching と共有） */}
+      <WorkbookLoader />
 
       {report && (
         <>
@@ -188,7 +105,7 @@ export function WeeklyReportPanel() {
                 <select
                   value={weekStart}
                   onChange={(event) => {
-                    setWeekStart(event.target.value);
+                    setSelectedWeek(event.target.value);
                     resetDraft();
                   }}
                   className="rounded border border-slate-300 px-2 py-1"
@@ -232,7 +149,7 @@ export function WeeklyReportPanel() {
                   <select
                     value={employeeId}
                     onChange={(event) => {
-                      setEmployeeId(event.target.value);
+                      setSelectedEmployee(event.target.value);
                       resetDraft();
                     }}
                     className="rounded border border-slate-300 px-2 py-1"

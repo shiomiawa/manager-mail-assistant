@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { BriefingPanel } from "@/components/BriefingPanel";
+import { CoachingPanel } from "@/components/CoachingPanel";
 import { MeetingPanel } from "@/components/MeetingPanel";
 import { WeeklyReportPanel } from "@/components/WeeklyReportPanel";
 
 const TABS = [
   { key: "weekly", label: "Weekly Performance Report" },
+  { key: "coaching", label: "Survey Coaching" },
   { key: "meeting", label: "Meeting Notes" },
   { key: "briefing", label: "Briefing Notes" },
 ] as const;
@@ -32,6 +34,9 @@ export function AppTabs() {
       </div>
       <div hidden={active !== "weekly"}>
         <WeeklyReportPanel />
+      </div>
+      <div hidden={active !== "coaching"}>
+        <CoachingPanel />
       </div>
       <div hidden={active !== "meeting"}>
         <MeetingPanel />

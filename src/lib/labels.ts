@@ -75,6 +75,18 @@ export const L = {
   datesAndDeadlines: "Dates & Deadlines",
   openQuestions: "Open Questions",
   date: "Date",
+  // アンケートのコーチング
+  surveyCoaching: "Survey Coaching",
+  coachingSheet: "Coaching Sheet",
+  strengths: "Strengths",
+  focusAreas: "Focus Areas",
+  hypothesis: "Possible Reason",
+  tryThis: "Try This",
+  examplePhrase: "Example",
+  coachingQuestions: "Coaching Questions",
+  nextCheck: "Next Check",
+  whatCustomersAppreciate: "What Customers Appreciate",
+  letsTry: "Let's Try",
   weeklyReport: "Weekly Report",
   individualReport: "Individual Report",
 } as const;

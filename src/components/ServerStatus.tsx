@@ -27,7 +27,7 @@ export function ServerStatus() {
         </span>
         {config.aiMode === "ai" && (
           <span>
-            1日の上限：週次コメント {config.limits.weeklyComments}回・会議の下書き {config.limits.meetingDrafts}回・説明会のメモ {config.limits.briefingNotes}回
+            1日の上限：週次コメント {config.limits.weeklyComments}回・会議の下書き {config.limits.meetingDrafts}回・説明会のメモ {config.limits.briefingNotes}回・コーチング {config.limits.coaching}回
           </span>
         )}
         {config.passcodeRequired && (

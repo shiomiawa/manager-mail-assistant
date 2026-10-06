@@ -3,6 +3,16 @@ import olpJson from "../../config/olp.json";
 
 export type Principle = { id: number; name: string; description: string };
 
+/**
+ * AIが書いた行動指針の名前を、一覧にある名前に合わせる。
+ * 一覧の名前を含んでいれば一致とみなし（「〇〇：説明」のような書き方に対応）、合わなければ空文字にする
+ */
+export function matchPrinciple(value: string, names: string[]): string {
+  const v = value.trim();
+  if (!v) return "";
+  return names.find((name) => v === name) ?? names.find((name) => v.includes(name)) ?? "";
+}
+
 /** 名前が入っている項目だけを返す（空欄の項目はコメントに使わない） */
 export function loadPrinciples(source: unknown = olpJson): Principle[] {
   const list = (source as { principles?: unknown }).principles;

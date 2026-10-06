@@ -11,6 +11,7 @@ export function GET() {
       weeklyComments: dailyLimit("weeklyComments"),
       meetingDrafts: dailyLimit("meetingDrafts"),
       briefingNotes: dailyLimit("briefingNotes"),
+      coaching: dailyLimit("coaching"),
     },
   });
 }

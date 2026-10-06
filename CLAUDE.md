@@ -170,7 +170,12 @@ CSチームのマネージャー向け「メール下書き作成アプリ」。
         - 日付の計算はAIにさせない：AIは「話の中ではっきり言った月と日」だけを返し、年はコード（`resolveDate`：説明会の年。説明会より前の日付なら翌年）で決める。日付が言われていない予定は空欄にして、画面で入れてもらう
         - 画面の Reminders で日付・時刻・通知（前日／当日）を確かめてから .ics をダウンロードする（まとめて、または1件ずつ）。.ics は `src/lib/briefing/calendar.ts`
         - サンプル：`sample-data/briefing-sample.txt`（架空の新システム導入説明会。2026-10-14）
-     1. アンケートのコーチング
+     1. ✅ アンケートのコーチング（2026-10-07 完成。タブ「Survey Coaching」）
+        - 1人のメンバーの直近4週間（週次レポートの推移と同じ期間）のお客様コメントと数字から、1on1 の材料を作る
+        - Coaching Sheet（自分用）：Customer Voice（評価軸ごとの件数と引用）／Strengths／Focus Areas（お客様の声・考えられる理由（仮説）・Try This・言い換えの例文・OLP）／Coaching Questions／Next Check
+        - To Employee（本人向け）：強みとKudosの引用、Let's Try。「悪い」の声の引用とマネージャーの仮説は入れない
+        - 読み込んだExcelは Weekly Performance Report と共有する（`src/lib/workbookStore.ts`）
+        - 評価軸・OLPの名前は、AIには文字で書かせ、コードで既知の名前に合わせる（`normalizeAxis`・`matchPrinciple`。合わないOLPは空にする）
      2. 称賛メール
      3. 次回ミーティング案内
      4. 勤怠フォロー
