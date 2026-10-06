@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
-import { buildMeetingEmails, type MeetingTabKey } from "@/lib/meeting/meetingEmails";
+import { buildMeetingEmails, type MeetingContext, type MeetingTabKey } from "@/lib/meeting/meetingEmails";
 import {
   MAX_TRANSCRIPT_LENGTH,
   TRANSCRIPT_EXTENSIONS,
@@ -14,8 +14,20 @@ import {
 import type { MeetingDraft, MeetingType } from "@/lib/meeting/types";
 
 const SAMPLES = {
-  "1on1": { url: "/sample/meeting-1on1-sample.vtt", date: "2026-10-06", label: "1on1のサンプル（E005）" },
-  team: { url: "/sample/meeting-team-sample.txt", date: "2026-10-05", label: "チームミーティングのサンプル" },
+  "1on1": {
+    url: "/sample/meeting-1on1-sample.vtt",
+    date: "2026-10-06",
+    label: "1on1のサンプル（E005）",
+    agenda: "",
+    next: { date: "2026-10-13", time: "" },
+  },
+  team: {
+    url: "/sample/meeting-team-sample.txt",
+    date: "2026-10-05",
+    label: "チームミーティングのサンプル",
+    agenda: "パラフレーズで要約するコツと、短く伝える方法",
+    next: { date: "2026-10-12", time: "10:00" },
+  },
 } as const;
 const MANAGER = /マネージャー|manager/i;
 
@@ -28,11 +40,14 @@ export function MeetingPanel() {
   const [type, setType] = useState<MeetingType>("1on1");
   const [meetingDate, setMeetingDate] = useState(today);
   const [counterpart, setCounterpart] = useState("");
+  const [agenda, setAgenda] = useState("");
+  const [nextMeetingDate, setNextMeetingDate] = useState("");
+  const [nextMeetingTime, setNextMeetingTime] = useState("");
   const [transcript, setTranscript] = useState("");
   const [fileName, setFileName] = useState("");
   const [loadError, setLoadError] = useState("");
 
-  const [draft, setDraft] = useState<{ draft: MeetingDraft; mock: boolean; context: { type: MeetingType; meetingDate: string; counterpart: string } } | null>(null);
+  const [draft, setDraft] = useState<{ draft: MeetingDraft; mock: boolean; context: MeetingContext } | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState("");
   const [tab, setTab] = useState<MeetingTabKey>("summary");
@@ -67,6 +82,9 @@ export function MeetingPanel() {
       setType(kind);
       setMeetingDate(SAMPLES[kind].date);
       setCounterpart("");
+      setAgenda(SAMPLES[kind].agenda);
+      setNextMeetingDate(SAMPLES[kind].next.date);
+      setNextMeetingTime(SAMPLES[kind].next.time);
       setLoaded(text, SAMPLES[kind].label);
     } catch {
       setLoadError("サンプルを読み込めませんでした。");
@@ -80,12 +98,18 @@ export function MeetingPanel() {
     }
     setDrafting(true);
     setDraftError("");
-    const context = { type, meetingDate, counterpart: type === "1on1" ? counterpart.trim() : "" };
+    const context: MeetingContext = {
+      type,
+      meetingDate,
+      counterpart: type === "1on1" ? counterpart.trim() : "",
+      nextMeetingDate,
+      nextMeetingTime: nextMeetingDate ? nextMeetingTime : "",
+    };
     try {
       const response = await fetch("/api/meeting-draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...context, transcript }),
+        body: JSON.stringify({ ...context, agenda: type === "team" ? agenda.trim() : "", transcript }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error ?? "下書きを作れませんでした。");
@@ -138,6 +162,30 @@ export function MeetingPanel() {
               className="rounded border border-slate-300 px-2 py-1"
             />
           </label>
+          <label className="flex items-center gap-2">
+            次回の日程
+            <input
+              type="date"
+              value={nextMeetingDate}
+              min={meetingDate}
+              onChange={(event) => {
+                setNextMeetingDate(event.target.value);
+                resetDraft();
+              }}
+              className="rounded border border-slate-300 px-2 py-1"
+            />
+            <input
+              type="time"
+              value={nextMeetingTime}
+              disabled={!nextMeetingDate}
+              aria-label="次回の時刻（任意）"
+              onChange={(event) => {
+                setNextMeetingTime(event.target.value);
+                resetDraft();
+              }}
+              className="rounded border border-slate-300 px-2 py-1 disabled:bg-slate-100"
+            />
+          </label>
           {type === "1on1" && (
             <label className="flex items-center gap-2">
               相手
@@ -155,6 +203,24 @@ export function MeetingPanel() {
             </label>
           )}
         </div>
+        {type === "team" && (
+          <label className="mt-3 block text-sm">
+            <span className="font-bold">アジェンダ</span>
+            <span className="ml-2 text-xs text-slate-500">あらかじめ決めておいたテーマ。全員の意見と反応、意見が分かれた点、総括に分けてまとめます。</span>
+            <input
+              type="text"
+              value={agenda}
+              maxLength={200}
+              placeholder="例：パラフレーズで要約するコツと、短く伝える方法"
+              onChange={(event) => {
+                setAgenda(event.target.value);
+                resetDraft();
+              }}
+              className="mt-1 block w-full rounded border border-slate-300 px-2 py-1"
+            />
+          </label>
+        )}
+        <p className="mt-2 text-xs text-slate-500">次回の日程はカレンダーから選びます（時刻は任意）。件名とメールの「Next Meeting」に入ります。</p>
       </section>
 
       {/* 2. 文字起こし */}
@@ -219,7 +285,7 @@ export function MeetingPanel() {
         <p className="mt-1 text-sm text-slate-600">
           {type === "1on1"
             ? "Summary（要約）・To Employee（本人向け）・My Notes（自分用）・To Team（チームに共有してよい話があるときだけ）を作ります。個人的な話題はチーム向けに入れません。"
-            : "Summary（要約）・To Team（チーム向け）・My Notes（自分用）を作ります。"}
+            : "Summary（要約）・To Team（チーム向け）・My Notes（自分用）を作ります。To Team には、一人ずつの意見と反応、意見が分かれた点と理由、総括を載せます。"}
         </p>
         <div className="mt-3 flex items-center gap-3">
           <button

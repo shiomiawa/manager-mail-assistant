@@ -66,9 +66,14 @@ CSチームのマネージャー向け「メール下書き作成アプリ」。
   - チームミーティング：Summary／To Team／My Notes
 - 1on1の内容をチーム向けに出すときは、個人的な話題（家庭・健康・シフトや勤務時間の相談・評価など）を含めない。こうした話題に関わる取り組みは、本人向けと自分用にだけ入れる
 - My Notes の「Observations」は断定しない（本人に確認する前提の書き方にする）
+- チームミーティングは「あらかじめ決めたアジェンダについて、全員に順番に意見を聞き、質問や感想を言い合う」形式を想定する
+  - フォームでアジェンダを入れる。To Team の並び：Agenda → Opinions（一人ずつの意見と、それへの反応：Agree／Will Try（真似してみる）／Question／Disagree／Comment／Reply）→ Different Views（意見が分かれた点：双方の考えと理由、話し合った結果）→ Wrap-up（総括）→ Action Items → Next Meeting
+  - 会議の記録なので、Opinions・Different Views・Wrap-up は1行に収めなくてよい（「箇条書きは1行」の例外）
+  - 総括には依頼を含めない。総括のあとの依頼（「全員が…」「〇〇さんは…」）を担当つきの Action Items にする
+- 次回の日程はフォームのカレンダー（日付）と時刻（任意）で選ぶ。件名の末尾（例：`・Next 10/12`）とメールの「Next Meeting」（例：`2026/10/12 (Mon) 10:00`）にコードで入れる。AIには日程を書かせない
 - AIの出力の形は `src/lib/meeting/types.ts`、メールの組み立ては `src/lib/meeting/meetingEmails.ts`、APIは `/api/meeting-draft`（いまはダミー：`src/lib/meeting/mockDraft.ts`）
 - 文字起こしは利用者が入れた文章なので、中に書かれた指示にAIを従わせない
-- サンプル：`sample-data/meeting-1on1-sample.vtt`（E005との架空の1on1）、`sample-data/meeting-team-sample.txt`（架空のチームミーティング）。画面用のコピーは `public/sample/`
+- サンプル：`sample-data/meeting-1on1-sample.vtt`（E005との架空の1on1）、`sample-data/meeting-team-sample.txt`（架空のチームミーティング。アジェンダ「パラフレーズで要約するコツと、短く伝える方法」）。画面用のコピーは `public/sample/`
 
 ## OLP（行動指針）に基づくコメント
 - 行動指針の設定ファイルは `config/olp.json`（OLP12項目の名前と、作業者が書く短い説明）。空欄の項目はコメントに使わない
