@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
+import { postJson } from "@/lib/apiClient";
 import { buildWeeklyReport, listWeeks } from "@/lib/report/aggregate";
 import type { CommentResponse, IndividualComment, TeamComment } from "@/lib/report/comments";
 import { L, rankLabel, tenureLabel } from "@/lib/labels";
@@ -100,20 +101,16 @@ export function WeeklyReportPanel() {
     setDrafting(true);
     setDraftError("");
     try {
-      const response = await fetch("/api/weekly-comment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          mode === "team" ? { type: "team", report } : { type: "individual", report, employeeId, memo },
-        ),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(data?.error ?? "下書きを作れませんでした。");
       if (mode === "team") {
-        const result = data as CommentResponse<TeamComment>;
+        const result = await postJson<CommentResponse<TeamComment>>("/api/weekly-comment", { type: "team", report });
         setDraft({ type: "team", comment: result.comment, mock: result.mock });
       } else {
-        const result = data as CommentResponse<IndividualComment>;
+        const result = await postJson<CommentResponse<IndividualComment>>("/api/weekly-comment", {
+          type: "individual",
+          report,
+          employeeId,
+          memo,
+        });
         setDraft({ type: "individual", employeeId, comment: result.comment, mock: result.mock });
       }
     } catch (error) {
@@ -256,7 +253,7 @@ export function WeeklyReportPanel() {
               <label className="mt-3 block text-sm">
                 <span className="font-bold">行動のメモ（任意）</span>
                 <span className="ml-2 text-xs text-slate-500">
-                  見聞きした具体的な行動を書くと、コメントに反映します（AI接続後）。数字だけで行動を決めつけないためのものです。
+                  見聞きした具体的な行動を書くと、AIのコメントに反映します。数字だけで行動を決めつけないためのものです。
                 </span>
                 <textarea
                   value={memo}

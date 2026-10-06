@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
+import { postJson } from "@/lib/apiClient";
 import { buildMeetingEmails, type MeetingContext, type MeetingTabKey } from "@/lib/meeting/meetingEmails";
 import {
   MAX_TRANSCRIPT_LENGTH,
@@ -106,13 +107,11 @@ export function MeetingPanel() {
       nextMeetingTime: nextMeetingDate ? nextMeetingTime : "",
     };
     try {
-      const response = await fetch("/api/meeting-draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...context, agenda: type === "team" ? agenda.trim() : "", transcript }),
+      const data = await postJson<{ draft: MeetingDraft; mock: boolean }>("/api/meeting-draft", {
+        ...context,
+        agenda: type === "team" ? agenda.trim() : "",
+        transcript,
       });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(data?.error ?? "下書きを作れませんでした。");
       setDraft({ draft: data.draft, mock: data.mock, context });
       setTab("summary");
     } catch (error) {

@@ -1,7 +1,10 @@
 // 会議の文字起こしから、下書き（AIが書く区画）を返す
-// いまはダミーだけ。Claude API は最後につなぐ（USE_MOCK_AI が "false" でない間はダミーを返す）
+// USE_MOCK_AI が "false" のときだけ Claude を使う。それ以外はダミー（費用はかからない）
 // 文字起こしは保存しない
+import { describeAIError, isMockAI } from "@/lib/claude";
+import { meetingDraftWithClaude } from "@/lib/meeting/aiDraft";
 import { mockMeetingDraft } from "@/lib/meeting/mockDraft";
+import { checkPasscode, refundQuota, takeQuota } from "@/lib/usageGuard";
 import { MAX_TRANSCRIPT_LENGTH } from "@/lib/meeting/transcript";
 import type { MeetingRequest } from "@/lib/meeting/types";
 
@@ -43,11 +46,7 @@ export async function POST(request: Request) {
   const counterpart = typeof body.counterpart === "string" ? body.counterpart.trim() : "";
   if (counterpart.length > MAX_COUNTERPART_LENGTH) return error("相手の名前が長すぎます。", 400);
 
-  if (process.env.USE_MOCK_AI === "false") {
-    return error("AIとの接続はまだ準備中です。", 501);
-  }
-
-  const draft = mockMeetingDraft({
+  const meeting = {
     type: body.type,
     transcript: body.transcript,
     meetingDate: body.meetingDate,
@@ -55,8 +54,21 @@ export async function POST(request: Request) {
     agenda,
     nextMeetingDate,
     nextMeetingTime,
-  });
-  return Response.json({ draft, mock: true });
+  };
+  if (isMockAI()) return Response.json({ draft: mockMeetingDraft(meeting), mock: true });
+
+  // 本物のAIは費用がかかるので、パスコードと1日の上限を確かめる
+  const denied = checkPasscode(request) ?? takeQuota("meetingDrafts");
+  if (denied) return denied;
+  try {
+    const result = await meetingDraftWithClaude(meeting);
+    return Response.json({ ...result, mock: false });
+  } catch (err) {
+    refundQuota("meetingDrafts");
+    const { message, status } = describeAIError(err);
+    console.error("会議の下書きの作成に失敗:", message);
+    return error(message, status);
+  }
 }
 
 function error(message: string, status: number) {

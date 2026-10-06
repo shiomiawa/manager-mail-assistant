@@ -119,6 +119,13 @@ CSチームのマネージャー向け「メール下書き作成アプリ」。
   - モデル名はコードに直接書かず、環境変数で切り替える
   - 開発中の動作確認は Claude Haiku 4.5（`claude-haiku-4-5`）で行う
 - 画面ができるまではダミーの結果で進め、APIは最後につなぐ（`USE_MOCK_AI` が "false" でない間はダミーを返す）
+- AIの接続（2026-10-07）：
+  - 呼び出しの共通処理とエラーの日本語化は `src/lib/claude.ts`。JSONの形は zod のスキーマで決め、`messages.parse` で受け取る
+  - プロンプト：週次レポートは `src/lib/report/aiComments.ts`、会議メモは `src/lib/meeting/aiDraft.ts`。文章のルール（`WRITING_RULES`）は共通
+  - 数字は、アプリが計算した値を文字にして渡す。AIには計算させず、渡した数字だけを使わせる
+  - 会議メモの期限は「話した言葉のまま」書かせる（AIが曜日から日付を計算すると間違えるため）。次回の日程はAIに書かせない
+  - 環境変数：`ANTHROPIC_API_KEY`、`CLAUDE_MODEL`（未設定なら claude-haiku-4-5）、`USE_MOCK_AI`（"false" のときだけAIを使う）、`DEMO_PASSCODE`（設定するとAIの利用にパスコードが必要）、`DAILY_LIMIT_WEEKLY_COMMENTS`（初期値100）、`DAILY_LIMIT_MEETING_DRAFTS`（初期値30）
+  - 費用の目安（Haiku 4.5）：週次コメント1回 約0.5円、会議メモ1回 約2円
 - データベースは使わない
 
 ### hotel-review-ai から流用する仕組み
