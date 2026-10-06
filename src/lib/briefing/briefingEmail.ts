@@ -1,8 +1,8 @@
 // 説明会の自分用メモ（メール）を組み立てる。見た目は他のメールと同じテンプレート
 // 日程の欄は、画面で確かめた（直した）日付を使う
-import type { EmailDocument } from "@/lib/email/template";
+import { EMAIL_ACCENTS, type EmailDocument } from "@/lib/email/template";
 import { L, meetingDateLabel } from "@/lib/labels";
-import { formatDate } from "@/lib/report/format";
+import { formatDate, formatShortDate } from "@/lib/report/format";
 import type { BriefingDraft } from "./types";
 
 /** 画面で確かめた日程（日付が分からないものは date が空） */
@@ -15,7 +15,8 @@ export function buildBriefingEmail(
 ): EmailDocument {
   const date = formatDate(context.briefingDate);
   return {
-    subject: `【${L.briefingNotes}】${date}　${draft.headline}`,
+    subject: `【Briefing】${formatShortDate(context.briefingDate)}${shortTitle(context.title)}`,
+    accent: EMAIL_ACCENTS.briefing,
     kind: `BRIEFING | ${L.myNotes.toUpperCase()}`,
     title: context.title || L.briefingNotes,
     meta: date,
@@ -56,4 +57,11 @@ export function buildBriefingEmail(
     ],
     closing: "（自分用のメモです。日程はカレンダーにも登録しておきましょう）",
   };
+}
+
+/** 件名に添える説明会の名前（長ければ20字で切る） */
+function shortTitle(title: string): string {
+  const t = title.trim();
+  if (!t) return "";
+  return ` ${t.length > 20 ? `${t.slice(0, 19)}…` : t}`;
 }

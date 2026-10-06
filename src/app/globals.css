@@ -1,16 +1,81 @@
 @import "tailwindcss";
 
-/* 落ち着いたブルー基調（メールと同じ色味） */
-@theme {
-  --color-brand-50: #eef4fa;
-  --color-brand-100: #dbe7f3;
-  --color-brand-600: #2f6fb0;
-  --color-brand-700: #245a91;
-  --color-brand-800: #1f4e79;
-  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+/*
+ * My Mail Butler の配色（ライトのみ）
+ * - ヘッダーはチャコール。4つのフォルダ（機能）は色相を離した同じ明るさの色
+ * - 画面の3列は背景をはっきり分け、区切り線を濃くする
+ * - brand-* は、いま開いているフォルダの色（data-folder で切り替わる）
+ */
+:root {
+  --bg: #e4e7ec;
+  --surface: #ffffff;
+  --rail: #eef0f4;
+  --reader: #dfe3e9;
+  --bar: #f7f8fa;
+  --line: #9ba6b5;
+  --line-soft: #c0c8d3;
+  --ink: #1b2028;
+  --muted: #586272;
+  --header: #22262e;
+
+  --weekly: #2f5daa;
+  --weekly-tint: #e6edf8;
+  --weekly-strong: #234a8a;
+  --coaching: #18866b;
+  --coaching-tint: #e2f3ed;
+  --coaching-strong: #116a54;
+  --meeting: #6a4bc4;
+  --meeting-tint: #eee9fa;
+  --meeting-strong: #553ba3;
+  --briefing: #c0572f;
+  --briefing-tint: #fbebe4;
+  --briefing-strong: #9e4422;
+
+  --accent: var(--weekly);
+  --accent-tint: var(--weekly-tint);
+  --accent-strong: var(--weekly-strong);
+  color-scheme: light;
+}
+
+[data-folder="weekly"] {
+  --accent: var(--weekly);
+  --accent-tint: var(--weekly-tint);
+  --accent-strong: var(--weekly-strong);
+}
+[data-folder="coaching"] {
+  --accent: var(--coaching);
+  --accent-tint: var(--coaching-tint);
+  --accent-strong: var(--coaching-strong);
+}
+[data-folder="meeting"] {
+  --accent: var(--meeting);
+  --accent-tint: var(--meeting-tint);
+  --accent-strong: var(--meeting-strong);
+}
+[data-folder="briefing"] {
+  --accent: var(--briefing);
+  --accent-tint: var(--briefing-tint);
+  --accent-strong: var(--briefing-strong);
+}
+
+@theme inline {
+  --color-brand-50: var(--accent-tint);
+  --color-brand-100: var(--accent-tint);
+  --color-brand-600: var(--accent);
+  --color-brand-700: var(--accent);
+  --color-brand-800: var(--accent-strong);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-rail: var(--rail);
+  --color-reader: var(--reader);
+  --color-bar: var(--bar);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-header: var(--header);
+  --font-sans: var(--font-plex), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
 }
 
 body {
-  background: #f2f5f9;
-  color: #1f2933;
+  background: var(--bg);
+  color: var(--ink);
 }

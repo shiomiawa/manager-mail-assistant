@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
 import { TranscriptInput } from "@/components/TranscriptInput";
+import { EmptyReader, Step, Workspace } from "@/components/Workspace";
 import { postJson } from "@/lib/apiClient";
 import { buildBriefingEmail } from "@/lib/briefing/briefingEmail";
 import {
@@ -138,193 +139,196 @@ export function BriefingPanel() {
     URL.revokeObjectURL(url);
   }
 
+  const inputClass = "rounded border border-line px-2 py-1 text-sm";
   return (
-    <div className="space-y-6">
-      {/* 1. 説明会の情報 */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">1. 説明会の情報</h2>
-        <div className="mt-3 flex flex-wrap items-end gap-4 text-sm">
-          <label className="flex flex-1 items-center gap-2">
-            名前
-            <input
-              type="text"
-              value={title}
-              maxLength={100}
-              placeholder="例：新しい問い合わせ管理システムの導入説明会"
-              onChange={(event) => {
-                setTitle(event.target.value);
-                reset();
-              }}
-              className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            日付
-            <input
-              type="date"
-              value={briefingDate}
-              onChange={(event) => {
-                setBriefingDate(event.target.value);
-                reset();
-              }}
-              className="rounded border border-slate-300 px-2 py-1"
-            />
-          </label>
-        </div>
-      </section>
-
-      {/* 2. 文字起こし */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">2. 文字起こしを読み込む</h2>
-        <TranscriptInput
-          value={transcript}
-          onChange={(text) => {
-            setTranscript(text);
-            reset();
-          }}
-          onLoaded={onLoaded}
-          fileName={fileName}
-          samples={[{ label: SAMPLE.label, url: SAMPLE.url }]}
-          placeholder={"講師：本日は、新しいシステムの説明会です。…"}
-        />
-      </section>
-
-      {/* 3. メモを作る */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">3. 自分用メモとリマインダーを作る</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          要点・やること・日程と期限・確認したいことを、自分用メモにまとめます。日程と期限は、カレンダー登録用ファイル（.ics）にしてカレンダーの通知でリマインドします（アプリからの自動送信はしません）。
-        </p>
-        <div className="mt-3 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void onDraft()}
-            disabled={drafting}
-            className="rounded bg-brand-700 px-5 py-2 text-sm font-bold text-white hover:bg-brand-800 disabled:opacity-50"
-          >
-            {drafting ? "作成中…" : "メモを作る"}
-          </button>
-          {draftError && (
-            <p role="alert" className="text-sm text-red-700">
-              {draftError}
-            </p>
-          )}
-        </div>
-      </section>
-
-      {result && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-base font-bold text-brand-800">Reminders</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            日付と時刻を確かめて、必要なら直してください。日付の分からないもの（「来週中」など）は、日付を入れると登録できます。
-          </p>
-          {reminders.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">日程や期限は見つかりませんでした。</p>
-          ) : (
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-brand-50 text-xs text-slate-600">
-                  <tr>
-                    <th className="px-2 py-1 text-center">登録</th>
-                    <th className="px-2 py-1 text-left">Item</th>
-                    <th className="px-2 py-1 text-left">説明会での言い方</th>
-                    <th className="px-2 py-1 text-left">Date</th>
-                    <th className="px-2 py-1 text-left">Time（任意）</th>
-                    <th className="px-2 py-1 text-left">通知</th>
-                    <th className="px-2 py-1" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {reminders.map((r) => (
-                    <tr key={r.id} className="border-b border-slate-100 align-middle">
-                      <td className="px-2 py-1 text-center">
-                        <input
-                          type="checkbox"
-                          checked={r.include}
-                          aria-label={`${r.title}をカレンダーに登録する`}
-                          onChange={(event) => update(r.id, { include: event.target.checked })}
-                        />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input
-                          type="text"
-                          value={r.title}
-                          maxLength={100}
-                          aria-label="予定の名前"
-                          onChange={(event) => update(r.id, { title: event.target.value })}
-                          className="w-full rounded border border-slate-300 px-2 py-1"
-                        />
-                      </td>
-                      <td className="px-2 py-1 text-xs text-slate-500">{r.whenText || "—"}</td>
-                      <td className="px-2 py-1">
-                        <input
-                          type="date"
-                          value={r.date}
-                          aria-label="日付"
-                          onChange={(event) => update(r.id, { date: event.target.value, include: Boolean(event.target.value) || r.include })}
-                          className={`rounded border px-2 py-1 ${r.include && !r.date ? "border-red-400" : "border-slate-300"}`}
-                        />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input
-                          type="time"
-                          value={r.time}
-                          aria-label="時刻（任意）"
-                          onChange={(event) => update(r.id, { time: event.target.value })}
-                          className="rounded border border-slate-300 px-2 py-1"
-                        />
-                      </td>
-                      <td className="px-2 py-1">
-                        <select
-                          value={r.remind}
-                          aria-label="通知のタイミング"
-                          onChange={(event) => update(r.id, { remind: event.target.value as ReminderTiming })}
-                          className="rounded border border-slate-300 px-2 py-1"
-                        >
-                          <option value="dayBefore">前日</option>
-                          <option value="sameDay">当日</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-1">
-                        <button
-                          type="button"
-                          disabled={!isValidDate(r.date)}
-                          onClick={() => download([r], `reminder-${r.date}.ics`)}
-                          className="whitespace-nowrap text-xs text-brand-700 underline disabled:text-slate-300 disabled:no-underline"
-                        >
-                          この1件
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+    <Workspace
+      compose={
+        <>
+          <Step n={1} label="Briefing" title="説明会の情報">
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 text-sm">
+              <label htmlFor="briefing-title" className="text-xs text-muted">名前</label>
+              <input
+                id="briefing-title"
+                type="text"
+                value={title}
+                maxLength={100}
+                placeholder="例：新しい問い合わせ管理システムの導入説明会"
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  reset();
+                }}
+                className={`${inputClass} min-w-0`}
+              />
+              <label htmlFor="briefing-date" className="text-xs text-muted">日付</label>
+              <input
+                id="briefing-date"
+                type="date"
+                value={briefingDate}
+                onChange={(event) => {
+                  setBriefingDate(event.target.value);
+                  reset();
+                }}
+                className={`${inputClass} w-fit`}
+              />
             </div>
-          )}
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={included.length === 0 || missingDate}
-              onClick={() => download(included, `briefing-${result.briefingDate}.ics`)}
-              className="rounded bg-brand-700 px-4 py-2 text-sm font-bold text-white hover:bg-brand-800 disabled:opacity-50"
-            >
-              カレンダーに登録（.ics・{included.length}件）
-            </button>
-            {missingDate && <p className="text-sm text-red-700">登録する予定に、日付が空のものがあります。</p>}
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            ダウンロードしたファイルを開くと、Outlook・Google カレンダー・iPhone のカレンダーに登録できます。通知は、終日の予定は前日／当日の9時、時刻のある予定は1日前／1時間前に出ます。Outlook で1件しか入らないときは「この1件」から1件ずつ登録してください。
-          </p>
-        </section>
-      )}
+          </Step>
 
-      {doc && result && (
-        <EmailPreview
-          doc={doc}
-          mock={result.mock}
-          mockNote="メモの文章はダミーです（AIはまだつないでいません）。いまは文字起こしから日付や依頼を含む文を拾っているだけで、要約はしていません。"
-        />
-      )}
-    </div>
+          <Step n={2} label="Transcript" title="文字起こしを読み込む">
+            <TranscriptInput
+              value={transcript}
+              onChange={(text) => {
+                setTranscript(text);
+                reset();
+              }}
+              onLoaded={onLoaded}
+              fileName={fileName}
+              samples={[{ label: SAMPLE.label, url: SAMPLE.url }]}
+              placeholder={"講師：本日は、新しいシステムの説明会です。…"}
+            />
+          </Step>
+
+          <Step n={3} label="Draft" title="自分用メモとリマインダーを作る">
+            <p className="text-xs leading-5 text-muted">
+              要点・やること・日程と期限・確認したいことを自分用メモにまとめ、日程と期限はカレンダー登録用ファイル（.ics）にします。アプリからの自動送信はしません。
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void onDraft()}
+                disabled={drafting}
+                className="rounded-md bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+              >
+                {drafting ? "作成中…" : "メモを作る"}
+              </button>
+              {draftError && (
+                <p role="alert" className="text-sm text-red-700">
+                  {draftError}
+                </p>
+              )}
+            </div>
+          </Step>
+        </>
+      }
+      reader={
+        result && doc ? (
+          <>
+            <section aria-label="Reminders" className="border-b border-line bg-white px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-sm font-semibold">Reminders</h2>
+                <p className="text-xs text-muted">日付と時刻を確かめて、必要なら直してください。日付の分からない予定は、日付を入れると登録できます。</p>
+              </div>
+              {reminders.length === 0 ? (
+                <p className="mt-2 text-sm text-muted">日程や期限は見つかりませんでした。</p>
+              ) : (
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[700px] text-sm">
+                    <thead className="bg-brand-50 text-xs text-muted">
+                      <tr>
+                        <th className="px-2 py-1 text-center">Add</th>
+                        <th className="px-2 py-1 text-left">Item</th>
+                        <th className="px-2 py-1 text-left">説明会での言い方</th>
+                        <th className="px-2 py-1 text-left">Date</th>
+                        <th className="px-2 py-1 text-left">Time</th>
+                        <th className="px-2 py-1 text-left">Notify</th>
+                        <th className="px-2 py-1" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reminders.map((r) => (
+                        <tr key={r.id} className="border-b border-line-soft align-middle">
+                          <td className="px-2 py-1 text-center">
+                            <input
+                              type="checkbox"
+                              checked={r.include}
+                              aria-label={`${r.title}をカレンダーに登録する`}
+                              onChange={(event) => update(r.id, { include: event.target.checked })}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={r.title}
+                              maxLength={100}
+                              aria-label="予定の名前"
+                              onChange={(event) => update(r.id, { title: event.target.value })}
+                              className="w-full rounded border border-line px-2 py-1"
+                            />
+                          </td>
+                          <td className="px-2 py-1 text-xs text-muted">{r.whenText || "—"}</td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="date"
+                              value={r.date}
+                              aria-label="日付"
+                              onChange={(event) => update(r.id, { date: event.target.value, include: Boolean(event.target.value) || r.include })}
+                              className={`rounded border px-2 py-1 ${r.include && !r.date ? "border-red-400" : "border-line"}`}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="time"
+                              value={r.time}
+                              aria-label="時刻（任意）"
+                              onChange={(event) => update(r.id, { time: event.target.value })}
+                              className="rounded border border-line px-2 py-1"
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <select
+                              value={r.remind}
+                              aria-label="通知のタイミング"
+                              onChange={(event) => update(r.id, { remind: event.target.value as ReminderTiming })}
+                              className="rounded border border-line px-2 py-1"
+                            >
+                              <option value="dayBefore">前日</option>
+                              <option value="sameDay">当日</option>
+                            </select>
+                          </td>
+                          <td className="px-2 py-1">
+                            <button
+                              type="button"
+                              disabled={!isValidDate(r.date)}
+                              onClick={() => download([r], `reminder-${r.date}.ics`)}
+                              className="text-xs whitespace-nowrap text-brand-700 underline disabled:text-line disabled:no-underline"
+                            >
+                              .ics
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={included.length === 0 || missingDate}
+                  onClick={() => download(included, `briefing-${result.briefingDate}.ics`)}
+                  className="rounded-md bg-brand-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+                >
+                  Add to Calendar（{included.length}）
+                </button>
+                {missingDate && <p className="text-xs text-red-700">登録する予定に、日付が空のものがあります。</p>}
+                <p className="text-xs text-muted">
+                  .ics を開くと Outlook・Google・iPhone のカレンダーに登録できます。Outlook で1件しか入らないときは、各行の「.ics」から登録してください。
+                </p>
+              </div>
+            </section>
+            <EmailPreview
+              doc={doc}
+              mock={result.mock}
+              to="自分用"
+              mockNote="メモの文章はダミーです（AIはまだつないでいません）。いまは文字起こしから日付や依頼を含む文を拾っているだけで、要約はしていません。"
+            />
+          </>
+        ) : (
+          <EmptyReader>
+            <p className="font-semibold text-ink">ここに自分用メモとリマインダーが表示されます</p>
+            <p>文字起こしを読み込み（サンプルでも試せます）、「メモを作る」を押してください。</p>
+          </EmptyReader>
+        )
+      }
+    />
   );
 }

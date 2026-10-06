@@ -32,7 +32,8 @@ describe("説明会のメモ（ダミー）", () => {
       { title: request.title, briefingDate: request.briefingDate },
       draft.dates.map((d) => ({ title: d.item, whenText: d.whenText, date: resolveDate(d.month, d.day, request.briefingDate), time: d.time })),
     );
-    expect(doc.subject).toBe(`【Briefing Notes】2026/10/14　${request.title.slice(0, 30)}`);
+    expect(doc.subject).toBe("【Briefing】10/14 新しい問い合わせ管理システムの導入説明会");
+    expect(doc.accent).toBe("#c0572f");
     const text = renderEmailText(doc);
     expect(text).toContain("【Dates & Deadlines】\nDate | Item");
     expect(text).toContain("2026/10/23 (Fri) 17:00 |");

@@ -48,8 +48,8 @@ describe("1on1 の下書き（ダミー）", () => {
     expect(emails.filter((e) => e.sendable).map((e) => e.key)).toEqual(["toEmployee", "toTeam"]);
   });
 
-  it("件名は「【種類】日付　結論」の形", () => {
-    expect(emails[1].doc.subject).toMatch(/^【1on1 Follow-up】2026\/10\/06　E005　取り組み\d件・Next 10\/13$/);
+  it("件名は「【種類】日付 宛先」の短い形", () => {
+    expect(emails.map((e) => e.doc.subject)).toEqual(["【1on1 Summary】10/6 E005", "【1on1】10/6 E005", "【1on1 Notes】10/6 E005", "【Team Update】10/6"]);
     expect(renderEmailText(emails[1].doc)).toContain("【Next Meeting】\n2026/10/13 (Tue)");
   });
 
@@ -120,9 +120,7 @@ describe("チームミーティングの下書き（ダミー）", () => {
     expect(draft.discussion!.wrapUp).toMatch(/^要約のコツは、/);
     expect(toTeam).toMatch(/【Wrap-up】\n要約のコツは、/);
     expect(toTeam).toContain("【Next Meeting】\n2026/10/12 (Mon) 10:00");
-    expect(emails.find((e) => e.key === "toTeam")!.doc.subject).toBe(
-      "【Team Meeting】2026/10/05　パラフレーズで要約するコツと、短く伝える方法・Next 10/12",
-    );
+    expect(emails.find((e) => e.key === "toTeam")!.doc.subject).toBe("【Meeting】10/5 Team");
   });
 
   it("取り組みは総括のあとから拾う（E013 の FAQ 要約例・10月9日）", () => {

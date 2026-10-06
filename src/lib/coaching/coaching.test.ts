@@ -47,7 +47,7 @@ describe("コーチングのメール（ダミー）", () => {
   it("Coaching Sheet は自分用、To Employee は本人向け", () => {
     expect(sheet.sendable).toBe(false);
     expect(toEmployee.sendable).toBe(true);
-    expect(sheet.doc.subject).toMatch(/^【Coaching Sheet】2026\/09\/28週　E005　/);
+    expect(sheet.doc.subject).toBe("【Coaching】9/28 E005");
   });
 
   it("Coaching Sheet には、お客様の声の集計・重点テーマの仮説・質問が入る", () => {

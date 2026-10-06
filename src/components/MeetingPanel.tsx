@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
+import { DraftTabs } from "@/components/DraftTabs";
 import { TranscriptInput } from "@/components/TranscriptInput";
+import { EmptyReader, Step, Workspace } from "@/components/Workspace";
 import { postJson } from "@/lib/apiClient";
 import { buildMeetingEmails, type MeetingContext, type MeetingTabKey } from "@/lib/meeting/meetingEmails";
 import { listSpeakers } from "@/lib/meeting/transcript";
@@ -104,173 +106,173 @@ export function MeetingPanel() {
     setDraftError("");
   };
 
+  const inputClass = "rounded border border-line px-2 py-1 text-sm";
   return (
-    <div className="space-y-6">
-      {/* 1. 会議の情報 */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">1. 会議の情報</h2>
-        <div className="mt-3 flex flex-wrap items-end gap-4 text-sm">
-          <fieldset className="flex gap-4">
-            <legend className="sr-only">会議の種類</legend>
-            {(["1on1", "team"] as const).map((value) => (
-              <label key={value} className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="meetingType"
-                  checked={type === value}
-                  onChange={() => {
-                    setType(value);
-                    resetDraft();
-                  }}
-                />
-                {value === "1on1" ? "1on1" : "チームミーティング"}
-              </label>
-            ))}
-          </fieldset>
-          <label className="flex items-center gap-2">
-            日付
-            <input
-              type="date"
-              value={meetingDate}
-              onChange={(event) => {
-                setMeetingDate(event.target.value);
-                resetDraft();
-              }}
-              className="rounded border border-slate-300 px-2 py-1"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            次回の日程
-            <input
-              type="date"
-              value={nextMeetingDate}
-              min={meetingDate}
-              onChange={(event) => {
-                setNextMeetingDate(event.target.value);
-                resetDraft();
-              }}
-              className="rounded border border-slate-300 px-2 py-1"
-            />
-            <input
-              type="time"
-              value={nextMeetingTime}
-              disabled={!nextMeetingDate}
-              aria-label="次回の時刻（任意）"
-              onChange={(event) => {
-                setNextMeetingTime(event.target.value);
-                resetDraft();
-              }}
-              className="rounded border border-slate-300 px-2 py-1 disabled:bg-slate-100"
-            />
-          </label>
-          {type === "1on1" && (
-            <label className="flex items-center gap-2">
-              相手
+    <Workspace
+      compose={
+        <>
+          <Step n={1} label="Meeting" title="会議の情報">
+            <fieldset className="flex gap-4 text-sm">
+              <legend className="sr-only">会議の種類</legend>
+              {(["1on1", "team"] as const).map((value) => (
+                <label key={value} className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="meetingType"
+                    checked={type === value}
+                    onChange={() => {
+                      setType(value);
+                      resetDraft();
+                    }}
+                  />
+                  {value === "1on1" ? "1on1" : "チームミーティング"}
+                </label>
+              ))}
+            </fieldset>
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 text-sm">
+              <label htmlFor="meeting-date" className="text-xs text-muted">日付</label>
               <input
-                type="text"
-                value={counterpart}
-                maxLength={40}
-                placeholder="例：E005"
+                id="meeting-date"
+                type="date"
+                value={meetingDate}
                 onChange={(event) => {
-                  setCounterpart(event.target.value);
+                  setMeetingDate(event.target.value);
                   resetDraft();
                 }}
-                className="w-32 rounded border border-slate-300 px-2 py-1"
+                className={`${inputClass} w-fit`}
               />
-            </label>
-          )}
-        </div>
-        {type === "team" && (
-          <label className="mt-3 block text-sm">
-            <span className="font-bold">アジェンダ</span>
-            <span className="ml-2 text-xs text-slate-500">あらかじめ決めておいたテーマ。全員の意見と反応、意見が分かれた点、総括に分けてまとめます。</span>
-            <input
-              type="text"
-              value={agenda}
-              maxLength={200}
-              placeholder="例：パラフレーズで要約するコツと、短く伝える方法"
-              onChange={(event) => {
-                setAgenda(event.target.value);
+              {type === "1on1" && (
+                <>
+                  <label htmlFor="meeting-counterpart" className="text-xs text-muted">相手</label>
+                  <input
+                    id="meeting-counterpart"
+                    type="text"
+                    value={counterpart}
+                    maxLength={40}
+                    placeholder="例：E005"
+                    onChange={(event) => {
+                      setCounterpart(event.target.value);
+                      resetDraft();
+                    }}
+                    className={`${inputClass} w-32`}
+                  />
+                </>
+              )}
+              {type === "team" && (
+                <>
+                  <label htmlFor="meeting-agenda" className="text-xs text-muted">アジェンダ</label>
+                  <input
+                    id="meeting-agenda"
+                    type="text"
+                    value={agenda}
+                    maxLength={200}
+                    placeholder="例：パラフレーズで要約するコツと、短く伝える方法"
+                    onChange={(event) => {
+                      setAgenda(event.target.value);
+                      resetDraft();
+                    }}
+                    className={`${inputClass} min-w-0`}
+                  />
+                </>
+              )}
+              <label htmlFor="meeting-next" className="text-xs text-muted">次回の日程</label>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  id="meeting-next"
+                  type="date"
+                  value={nextMeetingDate}
+                  min={meetingDate}
+                  onChange={(event) => {
+                    setNextMeetingDate(event.target.value);
+                    resetDraft();
+                  }}
+                  className={inputClass}
+                />
+                <input
+                  type="time"
+                  value={nextMeetingTime}
+                  disabled={!nextMeetingDate}
+                  aria-label="次回の時刻（任意）"
+                  onChange={(event) => {
+                    setNextMeetingTime(event.target.value);
+                    resetDraft();
+                  }}
+                  className={`${inputClass} disabled:bg-bar`}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted">
+              {type === "team" ? "アジェンダは、全員の意見と反応、意見が分かれた点、総括に分けてまとめます。" : ""}
+              次回の日程（時刻は任意）は、メールの「Next Meeting」に入ります。
+            </p>
+          </Step>
+
+          <Step n={2} label="Transcript" title="文字起こしを読み込む">
+            <TranscriptInput
+              value={transcript}
+              onChange={(text) => {
+                setTranscript(text);
                 resetDraft();
               }}
-              className="mt-1 block w-full rounded border border-slate-300 px-2 py-1"
+              onLoaded={onLoaded}
+              fileName={fileName}
+              samples={SAMPLE_KINDS.map((kind) => ({ label: SAMPLES[kind].label, url: SAMPLES[kind].url }))}
+              placeholder={"マネージャー：お疲れさまです。今日は…\nE005：よろしくお願いします。…"}
             />
-          </label>
-        )}
-        <p className="mt-2 text-xs text-slate-500">次回の日程はカレンダーから選びます（時刻は任意）。件名とメールの「Next Meeting」に入ります。</p>
-      </section>
+          </Step>
 
-      {/* 2. 文字起こし */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">2. 文字起こしを読み込む</h2>
-        <TranscriptInput
-          value={transcript}
-          onChange={(text) => {
-            setTranscript(text);
-            resetDraft();
-          }}
-          onLoaded={onLoaded}
-          fileName={fileName}
-          samples={SAMPLE_KINDS.map((kind) => ({ label: SAMPLES[kind].label, url: SAMPLES[kind].url }))}
-          placeholder={"マネージャー：お疲れさまです。今日は…\nE005：よろしくお願いします。…"}
-        />
-      </section>
-
-      {/* 3. 下書き */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-base font-bold text-brand-800">3. メールの下書きを作る</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          {type === "1on1"
-            ? "Summary（要約）・To Employee（本人向け）・My Notes（自分用）・To Team（チームに共有してよい話があるときだけ）を作ります。個人的な話題はチーム向けに入れません。"
-            : "Summary（要約）・To Team（チーム向け）・My Notes（自分用）を作ります。To Team には、一人ずつの意見と反応、意見が分かれた点と理由、総括を載せます。"}
-        </p>
-        <div className="mt-3 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void onDraft()}
-            disabled={drafting}
-            className="rounded bg-brand-700 px-5 py-2 text-sm font-bold text-white hover:bg-brand-800 disabled:opacity-50"
-          >
-            {drafting ? "作成中…" : "下書きを作る"}
-          </button>
-          {draftError && (
-            <p role="alert" className="text-sm text-red-700">
-              {draftError}
+          <Step n={3} label="Draft" title="メールの下書きを作る">
+            <p className="text-xs leading-5 text-muted">
+              {type === "1on1"
+                ? "Summary・To Employee・My Notes・To Team（チームに共有してよい話があるときだけ）を作ります。個人的な話題はチーム向けに入れません。"
+                : "Summary・To Team・My Notes を作ります。To Team には、一人ずつの意見と反応、意見が分かれた点と理由、総括を載せます。"}
             </p>
-          )}
-        </div>
-      </section>
-
-      {draft && current && (
-        <div>
-          <div role="tablist" aria-label="下書きの種類" className="flex flex-wrap gap-1 border-b border-slate-300 text-sm">
-            {emails.map((email) => (
+            <div className="flex flex-wrap items-center gap-3">
               <button
-                key={email.key}
                 type="button"
-                role="tab"
-                aria-selected={email.key === current.key}
-                onClick={() => setTab(email.key)}
-                className={`rounded-t border border-b-0 px-4 py-2 ${email.key === current.key ? "border-slate-300 bg-white font-bold text-brand-800" : "border-transparent text-slate-500 hover:text-brand-700"}`}
+                onClick={() => void onDraft()}
+                disabled={drafting}
+                className="rounded-md bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
               >
-                {email.label}
-                {!email.sendable && <span className="ml-1 text-[11px] text-slate-400">（自分用）</span>}
+                {drafting ? "作成中…" : "下書きを作る"}
               </button>
-            ))}
-          </div>
-          {draft.context.type === "1on1" && !emails.some((email) => email.key === "toTeam") && (
-            <p className="mt-2 text-xs text-slate-500">この1on1には、チームに共有する内容がなかったため To Team は作っていません。</p>
-          )}
-          <div className="mt-3">
+              {draftError && (
+                <p role="alert" className="text-sm text-red-700">
+                  {draftError}
+                </p>
+              )}
+            </div>
+          </Step>
+        </>
+      }
+      reader={
+        draft && current ? (
+          <>
+            <DraftTabs label="下書きの種類" items={emails} current={current.key} onSelect={setTab} />
+            {draft.context.type === "1on1" && !emails.some((email) => email.key === "toTeam") && (
+              <p className="mx-4 mt-2 text-xs text-muted">この1on1には、チームに共有する内容がなかったため To Team は作っていません。</p>
+            )}
             <EmailPreview
               key={current.key}
               doc={current.doc}
               mock={draft.mock}
+              to={
+                !current.sendable
+                  ? "自分用"
+                  : current.key === "toEmployee"
+                    ? draft.context.counterpart || "本人"
+                    : "Team"
+              }
               mockNote="下書きの文章はダミーです（AIはまだつないでいません）。いまは文字起こしから決まった言葉を含む発言を拾っているだけで、要約はしていません。"
             />
-          </div>
-        </div>
-      )}
-    </div>
+          </>
+        ) : (
+          <EmptyReader>
+            <p className="font-semibold text-ink">ここに下書きのプレビューが表示されます</p>
+            <p>文字起こしを読み込み（サンプルでも試せます）、「下書きを作る」を押してください。</p>
+          </EmptyReader>
+        )
+      }
+    />
   );
 }

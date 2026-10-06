@@ -21,6 +21,9 @@ export function formatDiff(value: number, digits: number, unit = ""): string {
   return `${rounded > 0 ? "+" : "−"}${text(Math.abs(rounded))}${unit}`;
 }
 
+/** 2026-09-28 → 9/28（件名用の短い日付） */
+export const formatShortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
+
 /** 2026-09-28 → 2026/09/28 */
 export const formatDate = (iso: string) => iso.replaceAll("-", "/");
 

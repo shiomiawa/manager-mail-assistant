@@ -1,7 +1,7 @@
 // 週次レポートのメール（チーム向け・個人向け）を組み立てる
 // 数字と要点はコードで作り、AIのコメントは決まった区画にだけ入れる
 // 説明文は日本語、見出し・項目名・順位などのラベルは英語（src/lib/labels.ts）
-import type { EmailBlock, EmailDocument, EmailSection, Status } from "@/lib/email/template";
+import { EMAIL_ACCENTS, type EmailBlock, type EmailDocument, type EmailSection, type Status } from "@/lib/email/template";
 import { L, axisLabel, channelLabel, rankLabel } from "@/lib/labels";
 import type { IndividualComment, TeamComment } from "./comments";
 import {
@@ -13,6 +13,7 @@ import {
   formatNumber,
   formatSatisfaction,
   formatScore,
+  formatShortDate,
   formatWeekRange,
 } from "./format";
 import type {
@@ -85,7 +86,8 @@ export function buildTeamEmail(report: WeeklyReport, comment: TeamComment): Emai
   ];
 
   return {
-    subject: `【${L.weeklyReport}】${formatDate(team.weekStart)}　${subjectSummary(team.achievement, team.thisWeek)}`,
+    subject: `【Weekly】${formatShortDate(team.weekStart)} Team`,
+    accent: EMAIL_ACCENTS.weekly,
     kind: `${L.weeklyReport.toUpperCase()} | TEAM`,
     title: "Team Weekly Performance",
     meta: `${formatWeekRange(team.weekStart)} · ${L.week} ${team.weekNumber} · ${team.headcount} members`,
@@ -146,7 +148,8 @@ export function buildIndividualEmail(
   ];
 
   return {
-    subject: `【${L.individualReport}】${formatDate(report.team.weekStart)}　${employee.employeeId}　${subjectSummary(employee.achievement, employee.thisWeek)}`,
+    subject: `【Weekly】${formatShortDate(report.team.weekStart)} ${employee.employeeId}`,
+    accent: EMAIL_ACCENTS.weekly,
     kind: `${L.weeklyReport.toUpperCase()} | INDIVIDUAL`,
     title: `${employee.employeeId} Weekly Performance`,
     meta: `${formatWeekRange(report.team.weekStart)} · ${L.week} ${report.team.weekNumber}`,
@@ -160,12 +163,6 @@ export function buildIndividualEmail(
     sections,
     closing: comment.closing,
   };
-}
-
-/** 件名の結論部分（例：Targets Met 1/3 · CSAT 4.33） */
-function subjectSummary(set: AchievementSet, metrics: WeekMetrics): string {
-  const achieved = Object.values(set).filter((a) => a.achieved).length;
-  return `Targets Met ${achieved}/3 · ${L.csat} ${formatSatisfaction(metrics.avgSatisfaction)}`;
 }
 
 /** 例：「目標は3項目中1項目を達成しました（AHT）。」 */

@@ -27,6 +27,8 @@ export type EmailDocument = {
   greeting?: string;
   /** 冒頭の要点。3行まで（4行目以降は捨てる） */
   highlights: string[];
+  /** 帯・見出しの線の色（メールの種類＝フォルダの色）。省略時は Weekly の色 */
+  accent?: string;
   /** 要点の枠のラベル（省略時は「要点」） */
   highlightsLabel?: string;
   sections: EmailSection[];
@@ -35,19 +37,25 @@ export type EmailDocument = {
 
 export const MAX_HIGHLIGHTS = 3;
 
-// 落ち着いたブルー基調
+/** メールの種類ごとの色（アプリのフォルダの色と同じ。メールは白地なので明るい色のまま） */
+export const EMAIL_ACCENTS = {
+  weekly: "#2f5daa",
+  coaching: "#18866b",
+  meeting: "#6a4bc4",
+  briefing: "#c0572f",
+} as const;
+
+// 帯と見出しの線以外は、どの種類でも同じ落ち着いたグレー
 export const EMAIL_COLORS = {
-  band: "#1f4e79",
   bandText: "#ffffff",
-  bandSub: "#c9dcef",
-  accent: "#2f6fb0",
-  highlightBg: "#eef4fa",
+  bandSub: "rgba(255,255,255,0.78)",
+  highlightBg: "#f3f5f8",
   page: "#f2f5f9",
   card: "#ffffff",
   text: "#1f2933",
   muted: "#5f6b7a",
   border: "#d9e2ec",
-  tableHead: "#e6eef7",
+  tableHead: "#eef1f5",
   good: "#1e7b4f",
   goodBg: "#e5f4ec",
   bad: "#b4472f",
@@ -79,7 +87,7 @@ function badge(text: string, status?: Status): string {
   return `<span style="display:inline-block;padding:1px 8px;border-radius:10px;background:${bg};color:${fg};font-size:11px;font-weight:bold;line-height:1.6;">${escapeHtml(text)}</span>`;
 }
 
-function renderBlock(block: EmailBlock): string {
+function renderBlock(block: EmailBlock, accent: string): string {
   switch (block.type) {
     case "paragraph":
       return `<p style="margin:0 0 12px;font-size:14px;line-height:1.8;color:${C.text};">${nl2br(block.text)}</p>`;
@@ -92,7 +100,7 @@ function renderBlock(block: EmailBlock): string {
       const items = block.items
         .map(
           (item) =>
-            `<tr><td valign="top" style="width:16px;padding:2px 0;font-size:14px;line-height:1.7;color:${C.accent};">&#9679;</td>` +
+            `<tr><td valign="top" style="width:16px;padding:2px 0;font-size:14px;line-height:1.7;color:${accent};">&#9679;</td>` +
             `<td style="padding:2px 0;font-size:14px;line-height:1.7;color:${C.text};">${escapeHtml(item)}</td></tr>`,
         )
         .join("");
@@ -147,12 +155,12 @@ function renderBlock(block: EmailBlock): string {
   }
 }
 
-function renderSection(section: EmailSection): string {
-  const content = section.blocks.map(renderBlock).join("");
+function renderSection(section: EmailSection, accent: string): string {
+  const content = section.blocks.map((block) => renderBlock(block, accent)).join("");
   if (!content) return "";
   return (
     `<tr><td style="padding:8px 24px 4px;">` +
-    `<p style="margin:0 0 10px;padding:0 0 0 8px;border-left:4px solid ${C.accent};font-size:15px;font-weight:bold;color:${C.band};line-height:1.4;">${escapeHtml(section.heading)}</p>` +
+    `<p style="margin:0 0 10px;padding:0 0 0 8px;border-left:4px solid ${accent};font-size:15px;font-weight:bold;color:${C.text};line-height:1.4;">${escapeHtml(section.heading)}</p>` +
     content +
     `</td></tr>`
   );
@@ -160,13 +168,14 @@ function renderSection(section: EmailSection): string {
 
 /** メール本文のHTML（そのまま貼り付けられる断片） */
 export function renderEmailHtml(doc: EmailDocument): string {
+  const accent = doc.accent ?? EMAIL_ACCENTS.weekly;
   const highlights = doc.highlights.slice(0, MAX_HIGHLIGHTS);
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:${C.page};font-family:${FONT};">` +
     `<tr><td align="center" style="padding:16px 8px;">` +
     `<table role="presentation" width="${WIDTH}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;max-width:${WIDTH}px;background:${C.card};">` +
     // 見出しの帯
-    `<tr><td style="padding:18px 24px;background:${C.band};">` +
+    `<tr><td style="padding:18px 24px;background:${accent};">` +
     `<p style="margin:0;font-size:12px;letter-spacing:1px;color:${C.bandSub};">${escapeHtml(doc.kind)}</p>` +
     `<p style="margin:4px 0 0;font-size:20px;font-weight:bold;color:${C.bandText};line-height:1.4;">${escapeHtml(doc.title)}</p>` +
     `<p style="margin:4px 0 0;font-size:12px;color:${C.bandSub};">${escapeHtml(doc.meta)}</p>` +
@@ -177,16 +186,16 @@ export function renderEmailHtml(doc: EmailDocument): string {
     // 冒頭の要点
     (highlights.length > 0
       ? `<tr><td style="padding:14px 24px 8px;">` +
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:${C.highlightBg};border-left:4px solid ${C.accent};">` +
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:${C.highlightBg};border-left:4px solid ${accent};">` +
         `<tr><td style="padding:10px 14px;">` +
-        `<p style="margin:0 0 4px;font-size:12px;font-weight:bold;color:${C.accent};">${escapeHtml(doc.highlightsLabel ?? "要点")}</p>` +
+        `<p style="margin:0 0 4px;font-size:12px;font-weight:bold;color:${accent};">${escapeHtml(doc.highlightsLabel ?? "要点")}</p>` +
         highlights
           .map((line) => `<p style="margin:0;font-size:14px;line-height:1.8;color:${C.text};">${escapeHtml(line)}</p>`)
           .join("") +
         `</td></tr></table></td></tr>`
       : "") +
     // 区画ごとの本文
-    doc.sections.map(renderSection).join("") +
+    doc.sections.map((section) => renderSection(section, accent)).join("") +
     // 締めの一言
     `<tr><td style="padding:8px 24px 22px;">` +
     `<p style="margin:0;padding:12px 0 0;border-top:1px solid ${C.border};font-size:14px;line-height:1.8;color:${C.text};">${nl2br(doc.closing)}</p>` +

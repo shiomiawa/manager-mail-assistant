@@ -1,13 +1,13 @@
 // アンケートのコーチング：Coaching Sheet（自分用）と To Employee（本人向け）のメールを組み立てる
-import type { EmailBlock, EmailDocument } from "@/lib/email/template";
+import { EMAIL_ACCENTS, type EmailBlock, type EmailDocument } from "@/lib/email/template";
 import { L, axisLabel } from "@/lib/labels";
-import { formatDate } from "@/lib/report/format";
+import { formatShortDate } from "@/lib/report/format";
 import type { CoachingDraft, CoachingInput } from "./types";
 
 export type CoachingEmail = { key: "sheet" | "toEmployee"; label: string; sendable: boolean; doc: EmailDocument };
 
 export function buildCoachingEmails(draft: CoachingDraft, input: CoachingInput, weekStart: string): CoachingEmail[] {
-  const date = formatDate(weekStart);
+  const date = formatShortDate(weekStart);
   const voiceTable: EmailBlock = {
     type: "table",
     headers: [L.axis, L.positive, L.neutral, L.negative],
@@ -35,7 +35,8 @@ export function buildCoachingEmails(draft: CoachingDraft, input: CoachingInput, 
     }));
 
   const sheet: EmailDocument = {
-    subject: `【${L.coachingSheet}】${date}週　${input.employeeId}　${draft.headline}`,
+    subject: `【Coaching】${date} ${input.employeeId}`,
+    accent: EMAIL_ACCENTS.coaching,
     kind: `SURVEY COACHING | ${L.myNotes.toUpperCase()}`,
     title: `${input.employeeId} ${L.coachingSheet}`,
     meta: input.weekLabel,
@@ -55,7 +56,8 @@ export function buildCoachingEmails(draft: CoachingDraft, input: CoachingInput, 
   };
 
   const toEmployee: EmailDocument = {
-    subject: `【Coaching】${date}週　${input.employeeId}　${L.customerVoice}`,
+    subject: `【Coaching】${date} ${input.employeeId}`,
+    accent: EMAIL_ACCENTS.coaching,
     kind: "SURVEY COACHING | FEEDBACK",
     title: `${input.employeeId} ${L.customerVoice}`,
     meta: input.weekLabel,

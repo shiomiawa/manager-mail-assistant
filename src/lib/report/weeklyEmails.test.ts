@@ -15,8 +15,8 @@ const employee = (id: string) => report.employees.find((e) => e.employeeId === i
 describe("チーム向けメール", () => {
   const doc = buildTeamEmail(report, mockTeamComment(report));
 
-  it("件名は「【種類】日付　結論や重要な数字」の形", () => {
-    expect(doc.subject).toBe("【Weekly Report】2026/09/28　Targets Met 1/3 · CSAT 4.33");
+  it("件名は「【種類】日付 宛先」の短い形", () => {
+    expect(doc.subject).toBe("【Weekly】9/28 Team");
   });
 
   it("要点は3行以内", () => {
@@ -40,7 +40,7 @@ describe("個人向けメール", () => {
   it("件名と要点", () => {
     const e = employee("E005");
     const doc = buildIndividualEmail(report, e, mockIndividualComment(report, e, []));
-    expect(doc.subject).toMatch(/^【Individual Report】2026\/09\/28　E005　Targets Met \d\/3 · CSAT 3\.87$/);
+    expect(doc.subject).toBe("【Weekly】9/28 E005");
     expect(doc.highlights).toHaveLength(3);
     expect(doc.highlights[1]).toMatch(/^Quality：CSATは3\.87（先週比−0\.\d\d）で、目標4\.30まであと0\.43です。$/);
     expect(renderEmailText(doc)).toContain("Total | 16.1 | #20");

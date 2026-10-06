@@ -1,9 +1,9 @@
 // 会議メモからのメール（Summary／To Employee／My Notes／To Team）を組み立てる
 // 見た目は週次レポートと同じテンプレート。ラベルは英語、文章は日本語
 // 次回の日程はフォームで選んだ値をコードで入れる（AIには書かせない）
-import type { EmailBlock, EmailDocument, EmailSection } from "@/lib/email/template";
+import { EMAIL_ACCENTS, type EmailBlock, type EmailDocument, type EmailSection } from "@/lib/email/template";
 import { L, meetingDateLabel, reactionLabel } from "@/lib/labels";
-import { formatDate } from "@/lib/report/format";
+import { formatDate, formatShortDate } from "@/lib/report/format";
 import type { ActionItem, Discussion, MeetingDraft, MeetingType } from "./types";
 
 export type MeetingTabKey = "summary" | "toEmployee" | "myNotes" | "toTeam";
@@ -27,14 +27,11 @@ export type MeetingContext = {
 export function buildMeetingEmails(draft: MeetingDraft, context: MeetingContext): MeetingEmail[] {
   const is1on1 = context.type === "1on1";
   const date = formatDate(context.meetingDate);
-  const who = is1on1 && context.counterpart ? `　${context.counterpart}` : "";
+  const short = formatShortDate(context.meetingDate);
+  const who = is1on1 && context.counterpart ? ` ${context.counterpart}` : "";
   const meetingName = is1on1 ? "1on1" : "Team Meeting";
   const kindPrefix = is1on1 ? "1ON1" : "TEAM MEETING";
   const meta = is1on1 && context.counterpart ? `${date} · with ${context.counterpart}` : date;
-  // 件名の結論のあとに、次回の日程を付ける（例：・Next 10/12）
-  const next = context.nextMeetingDate
-    ? `・Next ${Number(context.nextMeetingDate.slice(5, 7))}/${Number(context.nextMeetingDate.slice(8, 10))}`
-    : "";
   const nextSection = nextMeetingSection(context);
   const discussion = draft.discussion;
   const emails: MeetingEmail[] = [];
@@ -44,7 +41,8 @@ export function buildMeetingEmails(draft: MeetingDraft, context: MeetingContext)
     label: L.summary,
     sendable: false,
     doc: {
-      subject: `【${meetingName} ${L.summary}】${date}${who}　${draft.headline}${next}`,
+      subject: `【${is1on1 ? "1on1" : "Meeting"} ${L.summary}】${short}${who}`,
+      accent: EMAIL_ACCENTS.meeting,
       kind: `${kindPrefix} | ${L.summary.toUpperCase()}`,
       title: `${meetingName} ${L.summary}`,
       meta,
@@ -68,7 +66,8 @@ export function buildMeetingEmails(draft: MeetingDraft, context: MeetingContext)
       label: L.toEmployee,
       sendable: true,
       doc: {
-        subject: `【1on1 Follow-up】${date}${who}　${draft.headline}${next}`,
+        subject: `【1on1】${short}${who}`,
+        accent: EMAIL_ACCENTS.meeting,
         kind: `${kindPrefix} | FOLLOW-UP`,
         title: "1on1 Follow-up",
         meta,
@@ -91,7 +90,8 @@ export function buildMeetingEmails(draft: MeetingDraft, context: MeetingContext)
     label: L.myNotes,
     sendable: false,
     doc: {
-      subject: `【${meetingName} Notes】${date}${who}　${draft.headline}${next}`,
+      subject: `【${is1on1 ? "1on1" : "Meeting"} Notes】${short}${who}`,
+      accent: EMAIL_ACCENTS.meeting,
       kind: `${kindPrefix} | ${L.myNotes.toUpperCase()}`,
       title: `${meetingName} ${L.myNotes}`,
       meta,
@@ -114,9 +114,8 @@ export function buildMeetingEmails(draft: MeetingDraft, context: MeetingContext)
       label: L.toTeam,
       sendable: true,
       doc: {
-        subject: is1on1
-          ? `【Team Update】${date}　${t.keyPoints[0] ?? draft.headline}`
-          : `【Team Meeting】${date}　${draft.headline}${next}`,
+        subject: is1on1 ? `【Team Update】${short}` : `【Meeting】${short} Team`,
+        accent: EMAIL_ACCENTS.meeting,
         kind: `${kindPrefix} | ${L.toTeam.toUpperCase()}`,
         title: is1on1 ? "Team Update" : "Team Meeting",
         meta: date,
