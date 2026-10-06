@@ -15,12 +15,3 @@ export function parseTenure(text: string): number | null {
   if (months >= 12) return null;
   return years * 12 + months;
 }
-
-/** 画面・メール用の表示（例：29 → 「2年5か月」、3 → 「3か月」） */
-export function formatTenure(months: number): string {
-  const years = Math.floor(months / 12);
-  const rest = months % 12;
-  if (years === 0) return `${rest}か月`;
-  if (rest === 0) return `${years}年`;
-  return `${years}年${rest}か月`;
-}

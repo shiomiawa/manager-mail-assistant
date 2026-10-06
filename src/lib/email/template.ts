@@ -6,8 +6,8 @@
 export type Status = "good" | "bad" | "neutral";
 
 export type EmailBlock =
-  /** 主要な数字を横に並べる（スマホでは縦に並ぶ） */
-  | { type: "kpis"; items: { label: string; value: string; notes?: string[]; status?: Status; badge?: string }[] }
+  /** 主要な数字を横に並べる（スマホでは縦に並ぶ）。label を付けると小見出しになる */
+  | { type: "kpis"; label?: string; items: { label: string; value: string; notes?: string[]; status?: Status; badge?: string }[] }
   /** 1行ずつの箇条書き。label を付けると小見出しになる */
   | { type: "bullets"; label?: string; items: string[] }
   | { type: "paragraph"; text: string }
@@ -117,7 +117,10 @@ function renderBlock(block: EmailBlock): string {
           );
         })
         .join("");
-      return `<div style="margin:0 0 8px;font-size:0;">${cells}</div>`;
+      const label = block.label
+        ? `<p style="margin:0 0 4px;font-size:12px;font-weight:bold;color:${C.muted};">${escapeHtml(block.label)}</p>`
+        : "";
+      return `${label}<div style="margin:0 0 8px;font-size:0;">${cells}</div>`;
     }
 
     case "table": {
@@ -224,6 +227,7 @@ export function renderEmailText(doc: EmailDocument): string {
           body.push(...block.items.map((item) => `・${item}`));
           break;
         case "kpis":
+          if (block.label) body.push(`［${block.label}］`);
           body.push(
             ...block.items.map(
               (item) =>

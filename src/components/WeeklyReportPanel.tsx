@@ -4,16 +4,16 @@ import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
 import { buildWeeklyReport, listWeeks } from "@/lib/report/aggregate";
 import type { CommentResponse, IndividualComment, TeamComment } from "@/lib/report/comments";
+import { L, rankLabel, tenureLabel } from "@/lib/labels";
 import {
-  formatCount,
   formatDiff,
-  formatMinutes,
+  formatMin,
+  formatNumber,
   formatSatisfaction,
   formatScore,
   formatWeekRange,
 } from "@/lib/report/format";
 import { loadTargets } from "@/lib/report/targets";
-import { formatTenure } from "@/lib/report/tenure";
 import type { PerformanceRow, WeeklyReport } from "@/lib/report/types";
 import { buildIndividualEmail, buildTeamEmail } from "@/lib/report/weeklyEmails";
 
@@ -192,7 +192,7 @@ export function WeeklyReportPanel() {
                 >
                   {[...weeks].reverse().map((week) => (
                     <option key={week.weekStart} value={week.weekStart}>
-                      Week{week.weekNumber}（{formatWeekRange(week.weekStart)}）
+                      {L.week} {week.weekNumber}（{formatWeekRange(week.weekStart)}）
                     </option>
                   ))}
                 </select>
@@ -239,7 +239,7 @@ export function WeeklyReportPanel() {
                       .sort((a, b) => a.employeeId.localeCompare(b.employeeId))
                       .map((e) => (
                         <option key={e.employeeId} value={e.employeeId}>
-                          {e.employeeId}（総合{e.rank.total}位）
+                          {e.employeeId}（{L.total} {rankLabel(e.rank.total)}）
                         </option>
                       ))}
                   </select>
@@ -288,91 +288,117 @@ export function WeeklyReportPanel() {
 
 function TeamSummary({ report }: { report: WeeklyReport }) {
   const { team } = report;
-  const items = [
+  const change = team.changeFromLastWeek;
+  const groups = [
     {
-      label: "対応件数",
-      value: formatCount(team.thisWeek.count),
-      target: `目標 ${formatCount(team.achievement.weeklyCount.target)}`,
-      achieved: team.achievement.weeklyCount.achieved,
-      change: team.changeFromLastWeek && formatDiff(team.changeFromLastWeek.count, 0, "件"),
+      label: L.quality,
+      items: [
+        {
+          label: L.csat,
+          value: formatSatisfaction(team.thisWeek.avgSatisfaction),
+          target: `${L.target} ${formatSatisfaction(team.achievement.avgSatisfaction.target)}`,
+          achieved: team.achievement.avgSatisfaction.achieved,
+          change: change && formatDiff(change.avgSatisfaction, 2),
+        },
+      ],
     },
     {
-      label: "平均対応時間",
-      value: formatMinutes(team.thisWeek.avgMinutes),
-      target: `目標 ${formatMinutes(team.achievement.avgMinutes.target)}以内`,
-      achieved: team.achievement.avgMinutes.achieved,
-      change: team.changeFromLastWeek && formatDiff(team.changeFromLastWeek.avgMinutes, 1, "分"),
-    },
-    {
-      label: "満足度",
-      value: formatSatisfaction(team.thisWeek.avgSatisfaction),
-      target: `目標 ${formatSatisfaction(team.achievement.avgSatisfaction.target)}`,
-      achieved: team.achievement.avgSatisfaction.achieved,
-      change: team.changeFromLastWeek && formatDiff(team.changeFromLastWeek.avgSatisfaction, 2),
+      label: L.efficiency,
+      items: [
+        {
+          label: L.cases,
+          value: formatNumber(team.thisWeek.count),
+          target: `${L.target} ${formatNumber(team.achievement.weeklyCount.target)}`,
+          achieved: team.achievement.weeklyCount.achieved,
+          change: change && formatDiff(change.count, 0),
+        },
+        {
+          label: L.aht,
+          value: formatMin(team.thisWeek.avgMinutes),
+          target: `${L.target} ≤ ${formatMin(team.achievement.avgMinutes.target)}`,
+          achieved: team.achievement.avgMinutes.achieved,
+          change: change && formatDiff(change.avgMinutes, 1, " min"),
+        },
+      ],
     },
   ];
   return (
     <div className="mt-3">
       <p className="text-sm text-slate-600">
-        チーム全体（{team.headcount}名・Week{team.weekNumber}）
+        チーム全体（{team.headcount}名・{L.week} {team.weekNumber}）
       </p>
       <div className="mt-2 grid gap-3 sm:grid-cols-3">
-        {items.map((item) => (
-          <div key={item.label} className="rounded border border-slate-200 p-3">
-            <p className="flex items-center gap-2 text-xs text-slate-500">
-              {item.label}
-              <span
-                className={`rounded-full px-2 text-[11px] font-bold ${item.achieved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
-              >
-                {item.achieved ? "達成" : "未達"}
-              </span>
-            </p>
-            <p className="mt-1 text-2xl font-bold">{item.value}</p>
-            <p className="text-xs text-slate-500">
-              {item.target}
-              {item.change && `・先週比 ${item.change}`}
-            </p>
-          </div>
-        ))}
+        {groups.flatMap((group) =>
+          group.items.map((item) => (
+            <div key={item.label} className="rounded border border-slate-200 p-3">
+              <p className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="font-bold text-brand-700">{group.label}</span>
+                {item.label}
+                <span
+                  className={`rounded-full px-2 text-[11px] font-bold ${item.achieved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
+                >
+                  {item.achieved ? L.met : L.missed}
+                </span>
+              </p>
+              <p className="mt-1 text-2xl font-bold">{item.value}</p>
+              <p className="text-xs text-slate-500">
+                {item.target}
+                {item.change && ` · ${L.vsLastWeek} ${item.change}`}
+              </p>
+            </div>
+          )),
+        )}
       </div>
     </div>
   );
 }
 
 function RankingTable({ report }: { report: WeeklyReport }) {
+  const columns: { label: string; align: "left" | "right" | "center" }[] = [
+    { label: L.rank, align: "center" },
+    { label: L.employeeId, align: "left" },
+    { label: L.tenure, align: "left" },
+    { label: L.total, align: "right" },
+    { label: L.quality, align: "right" },
+    { label: L.efficiency, align: "right" },
+    { label: L.csat, align: "right" },
+    { label: L.cases, align: "right" },
+    { label: L.aht, align: "right" },
+    { label: `${L.csat} ${L.vsLastWeek}`, align: "right" },
+    { label: "Weeks", align: "right" },
+  ];
+  const alignClass = { left: "text-left", right: "text-right", center: "text-center" };
   return (
     <details className="mt-4">
       <summary className="cursor-pointer text-sm font-bold text-brand-700">
         ランキングと個人の数字を見る（{report.employees.length}名）
       </summary>
       <p className="mt-2 text-xs text-slate-500">
-        スコアはチーム内の相対評価（0〜100）。重みは 対応件数0.1・対応時間0.3・満足度0.6。チャンネルの違いはならしてから比べています。
+        スコアはチーム内の相対評価（0〜100）です。{L.quality}は満足度（{L.csat}）、{L.efficiency}は対応件数（{L.cases}）と平均対応時間（{L.aht}）から計算します。{L.total}の重みは {L.cases} 0.1・{L.aht} 0.3・{L.csat} 0.6 で、チャンネルの違いはならしてから比べています。
       </p>
       <div className="mt-2 overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-brand-50 text-xs text-slate-600">
             <tr>
-              {["順位", "社員ID", "在籍", "総合", "品質", "効率", "件数", "平均時間", "満足度", "先週比（満足度）", "推移の週数"].map(
-                (header) => (
-                  <th key={header} className="px-2 py-1 text-right first:text-center [&:nth-child(2)]:text-left [&:nth-child(3)]:text-left">
-                    {header}
-                  </th>
-                ),
-              )}
+              {columns.map((column) => (
+                <th key={column.label} className={`px-2 py-1 ${alignClass[column.align]}`}>
+                  {column.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {report.employees.map((e) => (
               <tr key={e.employeeId} className="border-b border-slate-100">
-                <td className="px-2 py-1 text-center">{e.rank.total}</td>
+                <td className="px-2 py-1 text-center">{rankLabel(e.rank.total)}</td>
                 <td className="px-2 py-1">{e.employeeId}</td>
-                <td className="px-2 py-1">{e.tenureMonths === null ? "—" : formatTenure(e.tenureMonths)}</td>
+                <td className="px-2 py-1">{e.tenureMonths === null ? "—" : tenureLabel(e.tenureMonths)}</td>
                 <td className="px-2 py-1 text-right font-bold">{formatScore(e.scores.total)}</td>
                 <td className="px-2 py-1 text-right">{formatScore(e.scores.quality)}</td>
                 <td className="px-2 py-1 text-right">{formatScore(e.scores.efficiency)}</td>
-                <td className="px-2 py-1 text-right">{formatCount(e.thisWeek.count)}</td>
-                <td className="px-2 py-1 text-right">{formatMinutes(e.thisWeek.avgMinutes)}</td>
                 <td className="px-2 py-1 text-right">{formatSatisfaction(e.thisWeek.avgSatisfaction)}</td>
+                <td className="px-2 py-1 text-right">{formatNumber(e.thisWeek.count)}</td>
+                <td className="px-2 py-1 text-right">{formatMin(e.thisWeek.avgMinutes)}</td>
                 <td className="px-2 py-1 text-right">
                   {e.changeFromLastWeek ? formatDiff(e.changeFromLastWeek.avgSatisfaction, 2) : "—"}
                 </td>
