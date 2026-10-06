@@ -1,0 +1,18 @@
+{
+  "_説明": "週次パフォーマンスレポートの目標値。数値は仮のものなので、実際の目標に合わせて書き換えてください。平均対応時間は短いほど良い（目標以下で達成）。",
+  "team": {
+    "weeklyCount": 2300,
+    "avgMinutes": 7.5,
+    "avgSatisfaction": 4.4
+  },
+  "individual": {
+    "weeklyCount": 110,
+    "avgMinutes": 8.0,
+    "avgSatisfaction": 4.3
+  },
+  "scoreWeights": {
+    "count": 0.1,
+    "minutes": 0.3,
+    "satisfaction": 0.6
+  }
+}

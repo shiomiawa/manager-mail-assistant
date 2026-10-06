@@ -77,6 +77,19 @@ const round = (value, digits) => Math.round(value * 10 ** digits) / 10 ** digits
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const toIsoDate = (ms) => new Date(ms).toISOString().slice(0, 10);
 
+// 在籍期間（データの最終日時点）。3か月〜9年のランダム。新人の E006 だけは最小の3か月に固定
+// 成績の数字が変わらないよう、成績とは別の乱数を使う
+const TENURE_AS_OF = "2026-10-02";
+const tenureRandom = createRandom(20260401);
+const tenureMonths = Object.fromEntries(
+  EMPLOYEES.map((employee) => [
+    employee.id,
+    employee.id === "E006" ? 3 : 3 + Math.floor(tenureRandom() * (9 * 12 - 3 + 1)),
+  ]),
+);
+const formatTenure = (months) =>
+  `${String(Math.floor(months / 12)).padStart(2, "0")}years,${String(months % 12).padStart(2, "0")}months`;
+
 // ISO週番号（月曜始まり）
 function isoWeek(ms) {
   // その週の木曜日が属する年で数える
@@ -108,6 +121,7 @@ for (let week = 0; week < WEEKS; week++) {
           csat: round(clamp((base.csat + employee.csat[week]) * jitter(0.035), 1, 5), 2),
           weekStart,
           weekNumber,
+          tenure: formatTenure(tenureMonths[employee.id]),
         });
       }
     }
@@ -132,12 +146,13 @@ dataSheet.columns = [
   { header: "平均満足度", key: "csat", width: 11, style: { font, numFmt: "0.00" } },
   { header: "週開始日", key: "weekStart", width: 12, style: { font, numFmt: "yyyy-mm-dd" } },
   { header: "Week番号", key: "weekNumber", width: 10, style: { font, numFmt: "0" } },
+  { header: "在籍期間", key: "tenure", width: 18, style: { font } },
 ];
 for (const row of rows) {
   dataSheet.addRow({ ...row, date: new Date(row.date), weekStart: new Date(row.weekStart) });
 }
 dataSheet.getRow(1).eachCell((cell) => Object.assign(cell, headerStyle));
-dataSheet.autoFilter = { from: "A1", to: "H1" };
+dataSheet.autoFilter = { from: "A1", to: "I1" };
 
 const notes = workbook.addWorksheet("説明");
 notes.columns = [
@@ -153,6 +168,7 @@ notes.addRows([
   { column: "平均満足度", description: "お客様アンケートの平均（1〜5）" },
   { column: "週開始日", description: "その週の月曜日" },
   { column: "Week番号", description: "ISO週番号（月曜始まり）" },
+  { column: "在籍期間", description: `入社からの期間（${TENURE_AS_OF}時点）。例：02years,05months＝2年5か月。3か月〜9年` },
   { column: "", description: "" },
   { column: "注意", description: "このファイルのデータはすべて架空のものです。実在の社員・お客様とは関係ありません。" },
 ]);
