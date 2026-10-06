@@ -5,6 +5,8 @@ import ExcelJS from "exceljs";
 import { copyFileSync, mkdirSync } from "node:fs";
 
 const OUTPUT = "sample-data/cs-performance-sample.xlsx";
+// お客様コメントの元（架空）。ここからランダムに選んで「コメント」シートに入れる
+const COMMENT_MASTER = "sample-data/cs-comment-master.xlsx";
 // 画面の「サンプルを使う」ボタン用のコピー
 const PUBLIC_COPY = "public/sample/cs-performance-sample.xlsx";
 
@@ -130,6 +132,75 @@ for (let week = 0; week < WEEKS; week++) {
   }
 }
 
+// ---- お客様コメント ----
+// 対応1件ごとに一定の確率でコメントが付く（コメントのない対応もある）。成績の数字が変わらないよう、別の乱数を使う
+const COMMENT_RATE = 0.04;
+const commentRandom = createRandom(20261007);
+const pick = (list) => list[Math.floor(commentRandom() * list.length)];
+
+// 社員ごとのコメントの傾向（評価軸の重み）。指定がなければ全軸同じ
+const VOICE_BIAS = {
+  E002: { good: { 時間: 3 }, bad: { 親身さ: 3, 態度: 3 } }, // 速いが、事務的に感じられやすい
+  E003: { good: { 親身さ: 3, 知識: 2 }, bad: { 時間: 4 } }, // 丁寧だが、時間がかかる
+  E004: { good: { 解決: 2 } },
+  E005: { bad: { 解決: 3 } }, // 直近で満足度が下がっている
+  E006: { bad: { 知識: 3 } }, // 新人
+};
+const AXES = ["解決", "時間", "親身さ", "知識", "態度"];
+
+const masterBook = new ExcelJS.Workbook();
+await masterBook.xlsx.readFile(COMMENT_MASTER);
+const master = [];
+masterBook.worksheets[0].eachRow((row, i) => {
+  if (i === 1) return;
+  const [id, channel, rating, axis, text] = row.values.slice(1).map((v) => String(v ?? "").trim());
+  if (id) master.push({ id, channel, rating, axis, text });
+});
+// マスタにメールのコメントはないので、文章でやり取りするチャットのコメントを使う
+const masterChannel = (channel) => (channel === "メール" ? "チャット" : channel);
+
+/** 満足度が高い日ほど「良い」、低い日ほど「悪い」が出やすい */
+function pickRating(csat) {
+  let good = clamp((csat - 3.3) / 1.6, 0.05, 0.92);
+  let bad = clamp((4.25 - csat) / 1.5, 0.02, 0.5);
+  if (good + bad > 1) [good, bad] = [good / (good + bad), bad / (good + bad)];
+  const r = commentRandom();
+  return r < good ? "良い" : r < good + bad ? "悪い" : "普通";
+}
+
+function pickAxis(employeeId, rating) {
+  const bias = VOICE_BIAS[employeeId]?.[rating === "良い" ? "good" : "bad"] ?? {};
+  const weights = AXES.map((axis) => bias[axis] ?? 1);
+  let r = commentRandom() * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < AXES.length; i++) {
+    r -= weights[i];
+    if (r < 0) return AXES[i];
+  }
+  return AXES.at(-1);
+}
+
+const comments = [];
+for (const row of rows) {
+  for (let i = 0; i < row.count; i++) {
+    if (commentRandom() >= COMMENT_RATE) continue;
+    const rating = pickRating(row.csat);
+    const axis = pickAxis(row.employeeId, rating);
+    const candidates = master.filter(
+      (m) => m.channel === masterChannel(row.channel) && m.rating === rating && m.axis === axis,
+    );
+    const comment = pick(candidates);
+    comments.push({
+      date: row.date,
+      employeeId: row.employeeId,
+      channel: row.channel,
+      commentId: comment.id,
+      rating,
+      axis,
+      text: comment.text,
+    });
+  }
+}
+
 const workbook = new ExcelJS.Workbook();
 const font = { name: "Arial", size: 10 };
 const headerStyle = {
@@ -156,6 +227,20 @@ for (const row of rows) {
 dataSheet.getRow(1).eachCell((cell) => Object.assign(cell, headerStyle));
 dataSheet.autoFilter = { from: "A1", to: "I1" };
 
+const commentSheet = workbook.addWorksheet("コメント", { views: [{ state: "frozen", ySplit: 1 }] });
+commentSheet.columns = [
+  { header: "日付", key: "date", width: 12, style: { font, numFmt: "yyyy-mm-dd" } },
+  { header: "社員ID", key: "employeeId", width: 10, style: { font } },
+  { header: "対応チャンネル", key: "channel", width: 14, style: { font } },
+  { header: "コメントID", key: "commentId", width: 11, style: { font } },
+  { header: "評価", key: "rating", width: 8, style: { font } },
+  { header: "評価軸", key: "axis", width: 9, style: { font } },
+  { header: "コメント", key: "text", width: 60, style: { font } },
+];
+for (const comment of comments) commentSheet.addRow({ ...comment, date: new Date(comment.date) });
+commentSheet.getRow(1).eachCell((cell) => Object.assign(cell, headerStyle));
+commentSheet.autoFilter = { from: "A1", to: "G1" };
+
 const notes = workbook.addWorksheet("説明");
 notes.columns = [
   { header: "列", key: "column", width: 16, style: { font } },
@@ -172,6 +257,9 @@ notes.addRows([
   { column: "Week番号", description: "ISO週番号（月曜始まり）" },
   { column: "在籍期間", description: `入社からの期間（${TENURE_AS_OF}時点）。例：02years,05months＝2年5か月。3か月〜9年` },
   { column: "", description: "" },
+  { column: "コメント（シート）", description: "お客様のコメント。対応の一部にだけ付くので、対応件数とは一致しない。評価は 良い／普通／悪い、評価軸は 解決／時間／親身さ／知識／態度" },
+  { column: "", description: "コメントの文章は sample-data/cs-comment-master.xlsx（架空）からランダムに選んだもの。メールのコメントはマスタにないため、チャットのコメントを使っている" },
+  { column: "", description: "" },
   { column: "注意", description: "このファイルのデータはすべて架空のものです。実在の社員・お客様とは関係ありません。" },
 ]);
 notes.getRow(1).eachCell((cell) => Object.assign(cell, headerStyle));
@@ -180,4 +268,6 @@ mkdirSync("sample-data", { recursive: true });
 await workbook.xlsx.writeFile(OUTPUT);
 mkdirSync("public/sample", { recursive: true });
 copyFileSync(OUTPUT, PUBLIC_COPY);
-console.log(`${OUTPUT} を作成しました（${rows.length}行）。${PUBLIC_COPY} にもコピーしました`);
+console.log(
+  `${OUTPUT} を作成しました（${rows.length}行、コメント${comments.length}件）。${PUBLIC_COPY} にもコピーしました`,
+);

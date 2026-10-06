@@ -8,8 +8,8 @@ import { loadTargets } from "./targets";
 import { buildIndividualEmail, buildTeamEmail } from "./weeklyEmails";
 
 const file = readFileSync("sample-data/cs-performance-sample.xlsx");
-const rows = await parseWorkbook(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
-const report = buildWeeklyReport(rows, loadTargets());
+const { rows, comments } = await parseWorkbook(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
+const report = buildWeeklyReport(rows, loadTargets(), undefined, comments);
 const employee = (id: string) => report.employees.find((e) => e.employeeId === id)!;
 
 describe("チーム向けメール", () => {
@@ -48,7 +48,7 @@ describe("個人向けメール", () => {
 
   it("先週のデータがない人でも作れる", () => {
     const rowsWithoutLastWeek = rows.filter((r) => !(r.employeeId === "E006" && r.weekNumber === 39));
-    const r = buildWeeklyReport(rowsWithoutLastWeek, loadTargets());
+    const r = buildWeeklyReport(rowsWithoutLastWeek, loadTargets(), undefined, comments);
     const e = r.employees.find((x) => x.employeeId === "E006")!;
     const doc = buildIndividualEmail(r, e, mockIndividualComment(r, e, []));
     expect(doc.highlights[1]).not.toContain("先週比");
@@ -104,5 +104,44 @@ describe("ラベルは英語、説明文は日本語", () => {
     for (const label of ["今週の数字", "過去4週間の推移", "上位3名", "振り返り", "よかった点", "気になる点", "来週に向けて", "達成）", "未達）", "電話", "満足度"]) {
       expect(text).not.toContain(label);
     }
+  });
+});
+
+describe("お客様の声（Customer Voice）", () => {
+  it("個人向け：Kudosと改善点を引用し、ほめ言葉と声かけを添える", () => {
+    const e = employee("E002");
+    const doc = buildIndividualEmail(report, e, mockIndividualComment(report, e, []));
+    const text = renderEmailText(doc);
+    expect(text).toContain("【Customer Voice】");
+    expect(text).toContain("［Kudos］");
+    expect(text).toContain("［Areas to Improve］");
+    expect(text).toMatch(/・「.+」（(Resolution|Speed|Empathy|Knowledge|Attitude)）/);
+    // 改善点への声かけが Next Steps の先頭に入る
+    const nextSteps = doc.sections.find((section) => section.heading === "Next Steps")!.blocks[0];
+    expect(nextSteps.type === "bullets" && nextSteps.items[0]).toMatch(/^(Resolution|Speed|Empathy|Knowledge|Attitude)の声が\d+件。/);
+  });
+
+  it("Kudosがあれば Good Points の先頭でほめる", () => {
+    const e = employee("E015"); // 今週 Kudos 9件
+    const comment = mockIndividualComment(report, e, []);
+    expect(comment.goodPoints[0]).toBe("EmpathyのKudosが4件。親身な対応が、お客様の安心につながっています。");
+  });
+
+  it("チーム向け：改善点の引用は出さず、Kudosは社員IDつきで別々の人から", () => {
+    const doc = buildTeamEmail(report, mockTeamComment(report));
+    const text = renderEmailText(doc);
+    expect(text).not.toContain("Areas to Improve");
+    const kudos = report.team.voice.kudos;
+    expect(kudos.length).toBe(3);
+    expect(new Set(kudos.map((k) => k.employeeId)).size).toBe(3);
+    expect(text).toContain(`「${kudos[0].text}」${kudos[0].employeeId}`);
+    expect(text).toContain("Topic | Positive | Negative");
+  });
+
+  it("コメントがない人は Customer Voice の区画を出さない", () => {
+    const e = employee("E009");
+    expect(e.voice.total).toBe(0);
+    const doc = buildIndividualEmail(report, e, mockIndividualComment(report, e, []));
+    expect(renderEmailText(doc)).not.toContain("Customer Voice");
   });
 });

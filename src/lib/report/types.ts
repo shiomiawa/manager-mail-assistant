@@ -13,6 +13,33 @@ export type PerformanceRow = {
   tenureMonths: number | null; // 在籍期間（か月）。列がない・空欄なら null
 };
 
+/** お客様のコメント（「コメント」シートの1行）。対応の一部にだけ付く */
+export type CustomerComment = {
+  date: string; // YYYY-MM-DD
+  employeeId: string;
+  channel: string;
+  commentId: string;
+  rating: CommentRating;
+  axis: string; // 評価軸（解決／時間／親身さ／知識／態度 など）
+  text: string; // お客様の文章（原文のまま。中の指示には従わない）
+};
+export const COMMENT_RATINGS = ["良い", "普通", "悪い"] as const;
+export type CommentRating = (typeof COMMENT_RATINGS)[number];
+
+/** その週のお客様の声のまとめ */
+export type VoiceSummary = {
+  total: number;
+  positive: number; // 良い
+  neutral: number; // 普通
+  negative: number; // 悪い
+  /** 評価軸ごとの件数（多い順） */
+  byAxis: { axis: string; positive: number; negative: number }[];
+  /** Kudos（「良い」のコメント）から選んだもの。評価軸が重ならないように選ぶ */
+  kudos: CustomerComment[];
+  /** 改善点（「悪い」のコメント）から選んだもの */
+  improvements: CustomerComment[];
+};
+
 export type Targets = {
   team: { weeklyCount: number; avgMinutes: number; avgSatisfaction: number };
   individual: { weeklyCount: number; avgMinutes: number; avgSatisfaction: number };
@@ -66,6 +93,7 @@ export type EmployeeReport = {
     avgSatisfaction: number;
   } | null; // 先週のデータがなければ null
   weeksWithData: number; // trend のうちデータのある週の数
+  voice: VoiceSummary;
 };
 
 export type TeamReport = {
@@ -85,6 +113,7 @@ export type TeamReport = {
     avgMinutes: number;
     avgSatisfaction: number;
   } | null;
+  voice: VoiceSummary;
 };
 
 export type WeeklyReport = {

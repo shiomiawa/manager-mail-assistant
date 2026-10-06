@@ -2,7 +2,7 @@
 // 数字と要点はコードで作り、AIのコメントは決まった区画にだけ入れる
 // 説明文は日本語、見出し・項目名・順位などのラベルは英語（src/lib/labels.ts）
 import type { EmailBlock, EmailDocument, EmailSection, Status } from "@/lib/email/template";
-import { L, channelLabel, rankLabel } from "@/lib/labels";
+import { L, axisLabel, channelLabel, rankLabel } from "@/lib/labels";
 import type { IndividualComment, TeamComment } from "./comments";
 import {
   formatCount,
@@ -15,7 +15,15 @@ import {
   formatScore,
   formatWeekRange,
 } from "./format";
-import type { Achievement, EmployeeReport, WeekMetrics, WeekPoint, WeeklyReport } from "./types";
+import type {
+  Achievement,
+  CustomerComment,
+  EmployeeReport,
+  VoiceSummary,
+  WeekMetrics,
+  WeekPoint,
+  WeeklyReport,
+} from "./types";
 
 type AchievementSet = { weeklyCount: Achievement; avgMinutes: Achievement; avgSatisfaction: Achievement };
 type Change = { count: number; avgMinutes: number; avgSatisfaction: number } | null;
@@ -47,6 +55,7 @@ export function buildTeamEmail(report: WeeklyReport, comment: TeamComment): Emai
         },
       ],
     },
+    ...customerVoiceSection(team.voice, "team"),
     { heading: L.trend, blocks: [trendTable(team.trend)] },
     {
       heading: L.top3,
@@ -104,6 +113,7 @@ export function buildIndividualEmail(
       heading: L.thisWeek,
       blocks: kpis(employee.thisWeek, employee.achievement, employee.changeFromLastWeek, employee.thisWeek.workDays),
     },
+    ...customerVoiceSection(employee.voice, "individual"),
     {
       heading: L.scores,
       blocks: [
@@ -240,6 +250,35 @@ function kpis(
       ],
     },
   ];
+}
+
+/**
+ * お客様の声。コメントがなければ区画ごと出さない。
+ * チーム向けは Kudos（社員IDつき）と評価軸ごとの件数だけ。個人の改善点はチームに出さない
+ */
+function customerVoiceSection(voice: VoiceSummary, audience: "team" | "individual"): EmailSection[] {
+  if (voice.total === 0) return [];
+  const quote = (c: CustomerComment) =>
+    audience === "team" ? `「${c.text}」${c.employeeId}（${axisLabel(c.axis)}）` : `「${c.text}」（${axisLabel(c.axis)}）`;
+  const blocks: EmailBlock[] = [
+    {
+      type: "table",
+      headers: [L.comments, L.positive, L.neutral, L.negative],
+      align: ["right", "right", "right", "right"],
+      rows: [[String(voice.total), String(voice.positive), String(voice.neutral), String(voice.negative)]],
+    },
+    { type: "bullets", label: L.kudos, items: voice.kudos.map(quote) },
+  ];
+  if (audience === "individual") {
+    blocks.push({ type: "bullets", label: L.toImprove, items: voice.improvements.map(quote) });
+  } else {
+    blocks.push({
+      type: "table",
+      headers: [L.axis, L.positive, L.negative],
+      rows: voice.byAxis.map((a) => [axisLabel(a.axis), String(a.positive), String(a.negative)]),
+    });
+  }
+  return [{ heading: L.customerVoice, blocks }];
 }
 
 function trendTable(trend: WeekPoint[]): EmailBlock {

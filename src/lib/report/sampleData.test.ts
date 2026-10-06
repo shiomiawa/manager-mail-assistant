@@ -6,11 +6,22 @@ import { parseWorkbook } from "./parseWorkbook";
 import { loadTargets } from "./targets";
 
 const file = readFileSync("sample-data/cs-performance-sample.xlsx");
-const rows = await parseWorkbook(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
-const report = buildWeeklyReport(rows, loadTargets());
+const { rows, comments } = await parseWorkbook(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
+const report = buildWeeklyReport(rows, loadTargets(), undefined, comments);
 const employee = (id: string) => report.employees.find((e) => e.employeeId === id)!;
 
 describe("サンプルデータの集計", () => {
+  it("コメントシートを読み込み、今週分だけを集計する", () => {
+    expect(comments.length).toBe(538);
+    expect(report.team.voice.total).toBe(comments.filter((c) => c.date >= "2026-09-28").length);
+    expect(report.employees.reduce((sum, e) => sum + e.voice.total, 0)).toBe(report.team.voice.total);
+  });
+
+  it("E002 は今週「悪い」のコメントがあり、改善点が選ばれる", () => {
+    expect(employee("E002").voice.negative).toBe(3);
+    expect(employee("E002").voice.improvements.length).toBe(2);
+  });
+
   it("20人・Week40を今週として読み込める", () => {
     expect(rows).toHaveLength(1016);
     expect(report.team.weekNumber).toBe(40);

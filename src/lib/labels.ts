@@ -35,6 +35,14 @@ export const L = {
   concerns: "Concerns",
   nextWeek: "Next Week",
   nextSteps: "Next Steps",
+  customerVoice: "Customer Voice",
+  kudos: "Kudos",
+  toImprove: "Areas to Improve",
+  comments: "Comments",
+  axis: "Topic",
+  positive: "Positive",
+  neutral: "Neutral",
+  negative: "Negative",
   weeklyReport: "Weekly Report",
   individualReport: "Individual Report",
 } as const;
@@ -43,6 +51,18 @@ const CHANNELS: Record<string, string> = { 電話: "Phone", メール: "Email", 
 
 /** チャンネル名を英語にする（知らない名前はそのまま） */
 export const channelLabel = (name: string) => CHANNELS[name] ?? name;
+
+// お客様コメントの評価軸
+const AXES: Record<string, string> = {
+  解決: "Resolution",
+  時間: "Speed",
+  親身さ: "Empathy",
+  知識: "Knowledge",
+  態度: "Attitude",
+};
+
+/** 評価軸を英語にする（知らない名前はそのまま） */
+export const axisLabel = (name: string) => AXES[name] ?? name;
 
 /** 順位（例：#3） */
 export const rankLabel = (rank: number) => `#${rank}`;

@@ -14,7 +14,7 @@ import {
   formatWeekRange,
 } from "@/lib/report/format";
 import { loadTargets } from "@/lib/report/targets";
-import type { PerformanceRow, WeeklyReport } from "@/lib/report/types";
+import type { CustomerComment, PerformanceRow, WeeklyReport } from "@/lib/report/types";
 import { buildIndividualEmail, buildTeamEmail } from "@/lib/report/weeklyEmails";
 
 const SAMPLE_URL = "/sample/cs-performance-sample.xlsx";
@@ -28,6 +28,7 @@ type Draft =
 
 export function WeeklyReportPanel() {
   const [rows, setRows] = useState<PerformanceRow[] | null>(null);
+  const [comments, setComments] = useState<CustomerComment[]>([]);
   const [fileName, setFileName] = useState("");
   const [weekStart, setWeekStart] = useState("");
   const [loadError, setLoadError] = useState<string[] | null>(null);
@@ -42,8 +43,8 @@ export function WeeklyReportPanel() {
 
   const weeks = useMemo(() => (rows ? listWeeks(rows) : []), [rows]);
   const report = useMemo<WeeklyReport | null>(
-    () => (rows && weekStart ? buildWeeklyReport(rows, targets, weekStart) : null),
-    [rows, weekStart],
+    () => (rows && weekStart ? buildWeeklyReport(rows, targets, weekStart, comments) : null),
+    [rows, weekStart, comments],
   );
 
   async function load(data: ArrayBuffer, name: string) {
@@ -54,8 +55,9 @@ export function WeeklyReportPanel() {
       const { parseWorkbook, WorkbookParseError } = await import("@/lib/report/parseWorkbook");
       try {
         const parsed = await parseWorkbook(data);
-        const parsedWeeks = listWeeks(parsed);
-        setRows(parsed);
+        const parsedWeeks = listWeeks(parsed.rows);
+        setRows(parsed.rows);
+        setComments(parsed.comments);
         setFileName(name);
         setWeekStart(parsedWeeks.at(-1)!.weekStart);
         setEmployeeId("");
@@ -140,7 +142,7 @@ export function WeeklyReportPanel() {
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-base font-bold text-brand-800">1. データを読み込む</h2>
         <p className="mt-1 text-sm text-slate-600">
-          日付・社員ID・対応チャンネル・対応件数・平均対応時間・平均満足度・週開始日・Week番号（・在籍期間）の列があるExcelを選んでください。ファイルはこのブラウザの中だけで読み込みます。
+          日付・社員ID・対応チャンネル・対応件数・平均対応時間・平均満足度・週開始日・Week番号（・在籍期間）の列があるExcelを選んでください。「コメント」シート（お客様のコメント）があれば、Kudosと改善点もメールに入れます。ファイルはこのブラウザの中だけで読み込みます。
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <label className="cursor-pointer rounded bg-brand-700 px-4 py-2 text-sm font-bold text-white hover:bg-brand-800">
@@ -163,7 +165,11 @@ export function WeeklyReportPanel() {
             サンプルデータを使う
           </button>
           {loading && <span className="text-sm text-slate-500">読み込み中…</span>}
-          {fileName && !loading && <span className="text-sm text-slate-600">読み込み済み：{fileName}</span>}
+          {fileName && !loading && (
+            <span className="text-sm text-slate-600">
+              読み込み済み：{fileName}（お客様コメント {comments.length.toLocaleString("ja-JP")}件）
+            </span>
+          )}
         </div>
         {loadError && (
           <div role="alert" className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -365,6 +371,8 @@ function RankingTable({ report }: { report: WeeklyReport }) {
     { label: L.cases, align: "right" },
     { label: L.aht, align: "right" },
     { label: `${L.csat} ${L.vsLastWeek}`, align: "right" },
+    { label: L.kudos, align: "right" },
+    { label: L.negative, align: "right" },
     { label: "Weeks", align: "right" },
   ];
   const alignClass = { left: "text-left", right: "text-right", center: "text-center" };
@@ -377,7 +385,7 @@ function RankingTable({ report }: { report: WeeklyReport }) {
         スコアはチーム内の相対評価（0〜100）です。{L.quality}は満足度（{L.csat}）、{L.efficiency}は対応件数（{L.cases}）と平均対応時間（{L.aht}）から計算します。{L.total}の重みは {L.cases} 0.1・{L.aht} 0.3・{L.csat} 0.6 で、チャンネルの違いはならしてから比べています。
       </p>
       <div className="mt-2 overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead className="bg-brand-50 text-xs text-slate-600">
             <tr>
               {columns.map((column) => (
@@ -402,6 +410,8 @@ function RankingTable({ report }: { report: WeeklyReport }) {
                 <td className="px-2 py-1 text-right">
                   {e.changeFromLastWeek ? formatDiff(e.changeFromLastWeek.avgSatisfaction, 2) : "—"}
                 </td>
+                <td className="px-2 py-1 text-right">{e.voice.positive}</td>
+                <td className="px-2 py-1 text-right">{e.voice.negative}</td>
                 <td className="px-2 py-1 text-right">{e.weeksWithData}/4</td>
               </tr>
             ))}

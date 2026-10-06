@@ -1,11 +1,13 @@
 // 週次パフォーマンスの集計（数字はすべてここで計算し、AIには計算させない）
 import type {
   Achievement,
+  CustomerComment,
   EmployeeReport,
   PerformanceRow,
   Scores,
   Targets,
   TeamReport,
+  VoiceSummary,
   WeekMetrics,
   WeekPoint,
   WeeklyReport,
@@ -15,6 +17,10 @@ import type {
 export const TREND_WEEKS = 4;
 /** 1週間の基準の営業日数（目標を出勤日数で按分するときに使う） */
 const STANDARD_WORK_DAYS = 5;
+/** メールに載せるお客様の声の数 */
+const KUDOS_PER_EMPLOYEE = 2;
+const IMPROVEMENTS_PER_EMPLOYEE = 2;
+const KUDOS_FOR_TEAM = 3;
 /** 表示する桁数（平均対応時間は小数1桁、満足度は小数2桁） */
 const MINUTES_DIGITS = 1;
 const SATISFACTION_DIGITS = 2;
@@ -22,11 +28,13 @@ const SATISFACTION_DIGITS = 2;
 /**
  * 週次レポートを作る。
  * @param weekStart 対象の週（省略するとデータの最新の週）
+ * @param comments お客様のコメント（なければ空）
  */
 export function buildWeeklyReport(
   rows: PerformanceRow[],
   targets: Targets,
   weekStart?: string,
+  comments: CustomerComment[] = [],
 ): WeeklyReport {
   const weeks = listWeeks(rows);
   const current = weekStart ?? weeks.at(-1)?.weekStart;
@@ -40,8 +48,11 @@ export function buildWeeklyReport(
   // その週にチームとして稼働した日数（祝日などで5日に満たない週は、目標を按分する）
   const teamWorkDays = countDays(weekRows);
 
+  const weekComments = comments.filter((c) => isInWeek(c.date, thisWeek.weekStart));
+
   const team = buildTeamReport(rows, weekRows, thisWeek, lastWeek, trendWeeks, targets, teamWorkDays);
-  const employees = buildEmployeeReports(rows, weekRows, lastWeek, trendWeeks, targets);
+  team.voice = summarizeVoice(weekComments, { kudos: KUDOS_FOR_TEAM, improvements: 0, distinctEmployees: true });
+  const employees = buildEmployeeReports(rows, weekRows, lastWeek, trendWeeks, targets, weekComments);
   return { team, employees };
 }
 
@@ -99,6 +110,7 @@ function buildTeamReport(
     },
     trend: trendWeeks.map((week) => toWeekPoint(week, rows.filter((row) => row.weekStart === week.weekStart))),
     changeFromLastWeek: lastWeekRows.length > 0 ? change(metrics, summarize(lastWeekRows)) : null,
+    voice: summarizeVoice([], { kudos: 0, improvements: 0 }), // 呼び出し元で入れる
   };
 }
 
@@ -108,6 +120,7 @@ function buildEmployeeReports(
   lastWeek: WeekInfo | null,
   trendWeeks: WeekInfo[],
   targets: Targets,
+  weekComments: CustomerComment[],
 ): EmployeeReport[] {
   const employeeIds = unique(weekRows.map((row) => row.employeeId));
   const scores = calculateScores(weekRows, targets.scoreWeights);
@@ -144,6 +157,10 @@ function buildEmployeeReports(
       trend,
       changeFromLastWeek: lastWeekRows.length > 0 ? change(metrics, summarize(lastWeekRows)) : null,
       weeksWithData: trend.filter((point) => point.metrics !== null).length,
+      voice: summarizeVoice(
+        weekComments.filter((c) => c.employeeId === employeeId),
+        { kudos: KUDOS_PER_EMPLOYEE, improvements: IMPROVEMENTS_PER_EMPLOYEE },
+      ),
     };
   });
 
@@ -216,6 +233,69 @@ export function calculateScores(
       },
     ]),
   );
+}
+
+/**
+ * お客様の声をまとめ、メールに載せるコメントを選ぶ（毎回同じ結果になるよう、決まった順で選ぶ）。
+ * - Kudos：「良い」のコメントから、件数の多い評価軸の順に1件ずつ（同じ評価軸・同じ文章は重ねない）
+ * - 改善点：「悪い」のコメントから、件数の多い評価軸の順に1件ずつ
+ */
+export function summarizeVoice(
+  comments: CustomerComment[],
+  limits: { kudos: number; improvements: number; distinctEmployees?: boolean },
+): VoiceSummary {
+  const axes = unique(comments.map((c) => c.axis));
+  const byAxis = axes
+    .map((axis) => ({
+      axis,
+      positive: comments.filter((c) => c.axis === axis && c.rating === "良い").length,
+      negative: comments.filter((c) => c.axis === axis && c.rating === "悪い").length,
+    }))
+    .sort((a, b) => b.negative - a.negative || b.positive - a.positive || a.axis.localeCompare(b.axis));
+
+  return {
+    total: comments.length,
+    positive: comments.filter((c) => c.rating === "良い").length,
+    neutral: comments.filter((c) => c.rating === "普通").length,
+    negative: comments.filter((c) => c.rating === "悪い").length,
+    byAxis,
+    kudos: pickComments(comments, "良い", limits.kudos, limits.distinctEmployees),
+    improvements: pickComments(comments, "悪い", limits.improvements, limits.distinctEmployees),
+  };
+}
+
+function pickComments(
+  comments: CustomerComment[],
+  rating: CustomerComment["rating"],
+  limit: number,
+  distinctEmployees = false,
+): CustomerComment[] {
+  const candidates = comments.filter((c) => c.rating === rating);
+  const axisCount = (axis: string) => candidates.filter((c) => c.axis === axis).length;
+  // 件数の多い評価軸 → 新しい日付 → 社員ID・コメントIDの順
+  const sorted = [...candidates].sort(
+    (a, b) =>
+      axisCount(b.axis) - axisCount(a.axis) ||
+      a.axis.localeCompare(b.axis) ||
+      b.date.localeCompare(a.date) ||
+      a.employeeId.localeCompare(b.employeeId) ||
+      a.commentId.localeCompare(b.commentId),
+  );
+  const picked: CustomerComment[] = [];
+  for (const comment of sorted) {
+    if (picked.length >= limit) break;
+    if (picked.some((p) => p.axis === comment.axis || p.text === comment.text)) continue;
+    if (distinctEmployees && picked.some((p) => p.employeeId === comment.employeeId)) continue;
+    picked.push(comment);
+  }
+  return picked;
+}
+
+/** 日付がその週（週開始日から7日間）に入っているか */
+function isInWeek(date: string, weekStart: string): boolean {
+  const start = Date.parse(`${weekStart}T00:00:00Z`);
+  const time = Date.parse(`${date}T00:00:00Z`);
+  return time >= start && time < start + 7 * 24 * 60 * 60 * 1000;
 }
 
 /** 最小＝0、最大＝100 にそろえる。全員同じ値なら全員50 */
