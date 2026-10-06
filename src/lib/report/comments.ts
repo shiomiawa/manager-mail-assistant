@@ -3,6 +3,8 @@
 /** 箇条書き1行の上限（1行に収めるため） */
 export const MAX_BULLET_LENGTH = 45;
 export const MAX_BULLETS = 3;
+/** 個人向けの Good Points・Next Steps は例外で、2〜3文・この文字数まで。4週間の推移にも触れる */
+export const MAX_LONG_ITEM_LENGTH = 100;
 
 /** チーム向けメールのAIコメント */
 export type TeamComment = {
@@ -14,8 +16,9 @@ export type TeamComment = {
 
 /** 個人向けメールのAIコメント */
 export type IndividualComment = {
-  goodPoints: string[]; // よかった点
-  // 次に向けて（OLPの観点での声かけ。問いかけ・提案の形）。principle は config/olp.json の項目名（なければ空文字）
+  goodPoints: string[]; // よかった点（2〜3文。Kudosをほめ、推移にも触れる）
+  // 次に向けて（2〜3文。OLPの観点での声かけ。改善点は責めずに、推移も踏まえた問いかけ・提案の形）
+  // principle は config/olp.json の項目名（なければ空文字）
   nextSteps: { principle: string; text: string }[];
   closing: string;
 };
