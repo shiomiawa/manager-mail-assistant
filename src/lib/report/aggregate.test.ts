@@ -147,3 +147,13 @@ describe("buildWeeklyReport", () => {
     expect(report.employees).toHaveLength(1);
   });
 });
+
+describe("達成の判定", () => {
+  it("表示の桁で判定する（8.04分は「8.0分」と表示されるので、目標8.0分を達成）", () => {
+    const report = buildWeeklyReport([row({ avgMinutes: 8.04 }), row({ employeeId: "E002", avgMinutes: 8.06 })], targets);
+    const e001 = report.employees.find((e) => e.employeeId === "E001")!;
+    const e002 = report.employees.find((e) => e.employeeId === "E002")!;
+    expect(e001.achievement.avgMinutes.achieved).toBe(true);
+    expect(e002.achievement.avgMinutes.achieved).toBe(false); // 8.1分
+  });
+});

@@ -2,9 +2,11 @@
 // 使い方：npm run sample-data
 // 乱数の種を固定しているので、何度実行しても同じ内容になる
 import ExcelJS from "exceljs";
-import { mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync } from "node:fs";
 
 const OUTPUT = "sample-data/cs-performance-sample.xlsx";
+// 画面の「サンプルを使う」ボタン用のコピー
+const PUBLIC_COPY = "public/sample/cs-performance-sample.xlsx";
 
 // 6週間分（月〜金）。最後の週を「今週」として扱う
 const FIRST_MONDAY = Date.UTC(2026, 7, 24); // 2026-08-24
@@ -176,4 +178,6 @@ notes.getRow(1).eachCell((cell) => Object.assign(cell, headerStyle));
 
 mkdirSync("sample-data", { recursive: true });
 await workbook.xlsx.writeFile(OUTPUT);
-console.log(`${OUTPUT} を作成しました（${rows.length}行）`);
+mkdirSync("public/sample", { recursive: true });
+copyFileSync(OUTPUT, PUBLIC_COPY);
+console.log(`${OUTPUT} を作成しました（${rows.length}行）。${PUBLIC_COPY} にもコピーしました`);

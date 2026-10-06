@@ -15,6 +15,9 @@ import type {
 export const TREND_WEEKS = 4;
 /** 1週間の基準の営業日数（目標を出勤日数で按分するときに使う） */
 const STANDARD_WORK_DAYS = 5;
+/** 表示する桁数（平均対応時間は小数1桁、満足度は小数2桁） */
+const MINUTES_DIGITS = 1;
+const SATISFACTION_DIGITS = 2;
 
 /**
  * 週次レポートを作る。
@@ -42,9 +45,10 @@ export function buildWeeklyReport(
   return { team, employees };
 }
 
-type WeekInfo = { weekStart: string; weekNumber: number };
+export type WeekInfo = { weekStart: string; weekNumber: number };
 
-function listWeeks(rows: PerformanceRow[]): WeekInfo[] {
+/** データに含まれる週（古い順） */
+export function listWeeks(rows: PerformanceRow[]): WeekInfo[] {
   const map = new Map<string, number>();
   for (const row of rows) map.set(row.weekStart, row.weekNumber);
   return [...map.entries()]
@@ -90,8 +94,8 @@ function buildTeamReport(
         metrics.count,
         targets.team.weeklyCount * (teamWorkDays / STANDARD_WORK_DAYS),
       ),
-      avgMinutes: lowerIsBetter(metrics.avgMinutes, targets.team.avgMinutes),
-      avgSatisfaction: higherIsBetter(metrics.avgSatisfaction, targets.team.avgSatisfaction),
+      avgMinutes: lowerIsBetter(metrics.avgMinutes, targets.team.avgMinutes, MINUTES_DIGITS),
+      avgSatisfaction: higherIsBetter(metrics.avgSatisfaction, targets.team.avgSatisfaction, SATISFACTION_DIGITS),
     },
     trend: trendWeeks.map((week) => toWeekPoint(week, rows.filter((row) => row.weekStart === week.weekStart))),
     changeFromLastWeek: lastWeekRows.length > 0 ? change(metrics, summarize(lastWeekRows)) : null,
@@ -130,8 +134,12 @@ function buildEmployeeReports(
           metrics.count,
           targets.individual.weeklyCount * (metrics.workDays / STANDARD_WORK_DAYS),
         ),
-        avgMinutes: lowerIsBetter(metrics.avgMinutes, targets.individual.avgMinutes),
-        avgSatisfaction: higherIsBetter(metrics.avgSatisfaction, targets.individual.avgSatisfaction),
+        avgMinutes: lowerIsBetter(metrics.avgMinutes, targets.individual.avgMinutes, MINUTES_DIGITS),
+        avgSatisfaction: higherIsBetter(
+          metrics.avgSatisfaction,
+          targets.individual.avgSatisfaction,
+          SATISFACTION_DIGITS,
+        ),
       },
       trend,
       changeFromLastWeek: lastWeekRows.length > 0 ? change(metrics, summarize(lastWeekRows)) : null,
@@ -227,12 +235,17 @@ function rankBy(reports: EmployeeReport[], score: (report: EmployeeReport) => nu
   return ranks;
 }
 
-function higherIsBetter(actual: number, target: number): Achievement {
-  return { actual, target, diff: actual - target, achieved: actual >= target };
+// 達成の判定は、画面・メールに出す桁で行う（「8.0分」なのに目標8.0分で未達、とならないように）
+function higherIsBetter(actual: number, target: number, digits = 0): Achievement {
+  return { actual, target, diff: actual - target, achieved: roundTo(actual, digits) >= target };
 }
 
-function lowerIsBetter(actual: number, target: number): Achievement {
-  return { actual, target, diff: actual - target, achieved: actual <= target };
+function lowerIsBetter(actual: number, target: number, digits = 0): Achievement {
+  return { actual, target, diff: actual - target, achieved: roundTo(actual, digits) <= target };
+}
+
+function roundTo(value: number, digits: number): number {
+  return Number(value.toFixed(digits));
 }
 
 function change(current: WeekMetrics, previous: WeekMetrics) {
