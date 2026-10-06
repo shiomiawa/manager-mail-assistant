@@ -10,6 +10,7 @@ export function GET() {
     limits: {
       weeklyComments: dailyLimit("weeklyComments"),
       meetingDrafts: dailyLimit("meetingDrafts"),
+      briefingNotes: dailyLimit("briefingNotes"),
     },
   });
 }

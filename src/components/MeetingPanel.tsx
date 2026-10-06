@@ -2,18 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { EmailPreview } from "@/components/EmailPreview";
+import { TranscriptInput } from "@/components/TranscriptInput";
 import { postJson } from "@/lib/apiClient";
 import { buildMeetingEmails, type MeetingContext, type MeetingTabKey } from "@/lib/meeting/meetingEmails";
-import {
-  MAX_TRANSCRIPT_LENGTH,
-  TRANSCRIPT_EXTENSIONS,
-  TranscriptError,
-  listSpeakers,
-  normalizeTranscript,
-  readTranscriptFile,
-} from "@/lib/meeting/transcript";
+import { listSpeakers } from "@/lib/meeting/transcript";
 import type { MeetingDraft, MeetingType } from "@/lib/meeting/types";
 
+const SAMPLE_KINDS = ["1on1", "team"] as const;
 const SAMPLES = {
   "1on1": {
     url: "/sample/meeting-1on1-sample.vtt",
@@ -46,7 +41,6 @@ export function MeetingPanel() {
   const [nextMeetingTime, setNextMeetingTime] = useState("");
   const [transcript, setTranscript] = useState("");
   const [fileName, setFileName] = useState("");
-  const [loadError, setLoadError] = useState("");
 
   const [draft, setDraft] = useState<{ draft: MeetingDraft; mock: boolean; context: MeetingContext } | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -56,40 +50,24 @@ export function MeetingPanel() {
   const emails = useMemo(() => (draft ? buildMeetingEmails(draft.draft, draft.context) : []), [draft]);
   const current = emails.find((email) => email.key === tab) ?? emails[0];
 
-  function setLoaded(text: string, name: string) {
-    setTranscript(text);
-    setFileName(name);
-    setLoadError("");
-    setDraft(null);
-    // 1on1の相手が空なら、マネージャー以外の最初の話者を入れる
-    const member = listSpeakers(text).find((s) => !MANAGER.test(s));
-    if (member) setCounterpart((value) => value || member);
-  }
-
-  async function onFile(file: File | undefined) {
-    if (!file) return;
-    try {
-      setLoaded(await readTranscriptFile(file), file.name);
-    } catch (error) {
-      setLoadError(error instanceof TranscriptError ? error.message : "ファイルを読み込めませんでした。");
-    }
-  }
-
-  async function onSample(kind: MeetingType) {
-    try {
-      const response = await fetch(SAMPLES[kind].url);
-      if (!response.ok) throw new Error();
-      const text = normalizeTranscript(await response.text());
+  /** ファイルやサンプルを読み込んだとき。サンプルなら、会議の情報もサンプルに合わせる */
+  function onLoaded(text: string, name: string, sampleIndex?: number) {
+    let blankCounterpart = false;
+    if (sampleIndex !== undefined) {
+      const kind = SAMPLE_KINDS[sampleIndex];
       setType(kind);
       setMeetingDate(SAMPLES[kind].date);
-      setCounterpart("");
       setAgenda(SAMPLES[kind].agenda);
       setNextMeetingDate(SAMPLES[kind].next.date);
       setNextMeetingTime(SAMPLES[kind].next.time);
-      setLoaded(text, SAMPLES[kind].label);
-    } catch {
-      setLoadError("サンプルを読み込めませんでした。");
+      blankCounterpart = true;
     }
+    setTranscript(text);
+    setFileName(name);
+    setDraft(null);
+    // 1on1の相手が空なら、マネージャー以外の最初の話者を入れる
+    const member = listSpeakers(text).find((s) => !MANAGER.test(s)) ?? "";
+    setCounterpart((value) => (blankCounterpart ? member : value || member));
   }
 
   async function onDraft() {
@@ -225,57 +203,17 @@ export function MeetingPanel() {
       {/* 2. 文字起こし */}
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-base font-bold text-brand-800">2. 文字起こしを読み込む</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Teams・Zoom・Google Meet などの文字起こし（{TRANSCRIPT_EXTENSIONS.join(" / ")}）を選ぶか、下の欄に貼り付けてください。時刻は取り除き、「話者：発言」の形に整えます。文字起こしは保存しません。
-        </p>
-        <p className="mt-1 text-xs text-amber-700">デモでは架空の会議を使ってください（実在の人の会話は入れないでください）。</p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded bg-brand-700 px-4 py-2 text-sm font-bold text-white hover:bg-brand-800">
-            ファイルを選ぶ
-            <input
-              type="file"
-              accept={TRANSCRIPT_EXTENSIONS.join(",")}
-              className="sr-only"
-              onChange={(event) => {
-                void onFile(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-          </label>
-          {(["1on1", "team"] as const).map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => void onSample(kind)}
-              className="rounded border border-brand-600 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50"
-            >
-              {SAMPLES[kind].label}
-            </button>
-          ))}
-          {fileName && <span className="text-sm text-slate-600">読み込み済み：{fileName}</span>}
-        </div>
-        {loadError && (
-          <p role="alert" className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            {loadError}
-          </p>
-        )}
-        <label className="mt-3 block text-sm">
-          <span className="sr-only">文字起こし</span>
-          <textarea
-            value={transcript}
-            maxLength={MAX_TRANSCRIPT_LENGTH}
-            onChange={(event) => {
-              setTranscript(event.target.value);
-              resetDraft();
-            }}
-            rows={10}
-            placeholder={"マネージャー：お疲れさまです。今日は…\nE005：よろしくお願いします。…"}
-            className="block w-full rounded border border-slate-300 p-2 font-mono text-xs leading-5"
-          />
-        </label>
-        <p className="mt-1 text-right text-xs text-slate-500">
-          {transcript.length.toLocaleString("ja-JP")} / {MAX_TRANSCRIPT_LENGTH.toLocaleString("ja-JP")}字
-        </p>
+        <TranscriptInput
+          value={transcript}
+          onChange={(text) => {
+            setTranscript(text);
+            resetDraft();
+          }}
+          onLoaded={onLoaded}
+          fileName={fileName}
+          samples={SAMPLE_KINDS.map((kind) => ({ label: SAMPLES[kind].label, url: SAMPLES[kind].url }))}
+          placeholder={"マネージャー：お疲れさまです。今日は…\nE005：よろしくお願いします。…"}
+        />
       </section>
 
       {/* 3. 下書き */}

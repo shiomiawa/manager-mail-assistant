@@ -67,6 +67,14 @@ export const L = {
   outcome: "Outcome",
   wrapUp: "Wrap-up",
   nextMeeting: "Next Meeting",
+  // 説明会
+  briefingNotes: "Briefing Notes",
+  overview: "Overview",
+  keyTakeaways: "Key Takeaways",
+  toDo: "To Do",
+  datesAndDeadlines: "Dates & Deadlines",
+  openQuestions: "Open Questions",
+  date: "Date",
   weeklyReport: "Weekly Report",
   individualReport: "Individual Report",
 } as const;

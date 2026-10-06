@@ -87,7 +87,7 @@ export type ServerConfig = {
   aiMode: "mock" | "ai";
   model: string | null;
   passcodeRequired: boolean;
-  limits: { weeklyComments: number; meetingDrafts: number };
+  limits: { weeklyComments: number; meetingDrafts: number; briefingNotes: number };
 };
 
 export function useServerConfig(): ServerConfig | null {

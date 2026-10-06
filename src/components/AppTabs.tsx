@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { BriefingPanel } from "@/components/BriefingPanel";
 import { MeetingPanel } from "@/components/MeetingPanel";
 import { WeeklyReportPanel } from "@/components/WeeklyReportPanel";
 
 const TABS = [
   { key: "weekly", label: "Weekly Performance Report" },
   { key: "meeting", label: "Meeting Notes" },
+  { key: "briefing", label: "Briefing Notes" },
 ] as const;
 
 /** 機能の切り替え。切り替えても、それぞれの入力内容は残す */
@@ -33,6 +35,9 @@ export function AppTabs() {
       </div>
       <div hidden={active !== "meeting"}>
         <MeetingPanel />
+      </div>
+      <div hidden={active !== "briefing"}>
+        <BriefingPanel />
       </div>
     </>
   );
