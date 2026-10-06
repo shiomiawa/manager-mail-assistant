@@ -43,6 +43,22 @@ const EMPLOYEES = [
     daysOff: ["2026-10-01", "2026-10-02"] },
   // チャット専任
   { id: "E008", channels: ["チャット"], count: flat(1.2), minutes: flat(0.95), csat: flat(0.1) },
+  // 時短勤務（件数は少なめ）
+  { id: "E009", channels: ["メール"], count: flat(0.6), minutes: flat(1.0), csat: flat(0.15) },
+  // Week36に夏休み（1週間不在）
+  { id: "E010", channels: ["電話", "チャット"], count: [1.05, null, 1.05, 1.0, 1.05, 1.0],
+    minutes: [0.95, null, 0.95, 0.95, 0.95, 0.95], csat: [0.05, null, 0.05, 0.1, 0.05, 0.1] },
+  // ここから下は、特別な傾向を持たない平均的なメンバー
+  { id: "E011", channels: ["電話"], count: flat(1.05), minutes: flat(1.05), csat: flat(0.0) },
+  { id: "E012", channels: ["電話", "メール"], count: flat(0.95), minutes: flat(0.95), csat: flat(0.1) },
+  { id: "E013", channels: ["チャット", "メール"], count: flat(1.1), minutes: flat(1.0), csat: flat(-0.1) },
+  { id: "E014", channels: ["電話"], count: flat(0.95), minutes: flat(1.1), csat: flat(0.2) },
+  { id: "E015", channels: ["電話", "チャット"], count: flat(1.0), minutes: flat(0.9), csat: flat(-0.05) },
+  { id: "E016", channels: ["メール"], count: flat(1.1), minutes: flat(0.95), csat: flat(0.05) },
+  { id: "E017", channels: ["電話", "メール"], count: flat(1.0), minutes: flat(1.05), csat: flat(-0.15) },
+  { id: "E018", channels: ["チャット"], count: flat(1.0), minutes: flat(1.05), csat: flat(0.0) },
+  { id: "E019", channels: ["電話", "メール", "チャット"], count: flat(1.05), minutes: flat(1.0), csat: flat(0.15) },
+  { id: "E020", channels: ["電話"], count: flat(1.1), minutes: flat(0.9), csat: flat(0.05) },
 ];
 
 // 再現できる乱数（mulberry32）
@@ -130,7 +146,7 @@ notes.columns = [
 ];
 notes.addRows([
   { column: "日付", description: "対応した日（月〜金）" },
-  { column: "社員ID", description: "架空の社員ID（E001〜E008）" },
+  { column: "社員ID", description: "架空の社員ID（E001〜E020）" },
   { column: "対応チャンネル", description: "電話／メール／チャット。1人が複数のチャンネルを担当する日は、チャンネルごとに1行" },
   { column: "対応件数", description: "その日・そのチャンネルの対応件数（件）" },
   { column: "平均対応時間", description: "1件あたりの平均対応時間（分）。短いほど高評価" },

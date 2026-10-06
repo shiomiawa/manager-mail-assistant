@@ -23,7 +23,7 @@ CSチームのマネージャー向け「メール下書き作成アプリ」。
   | 平均満足度 | 1〜5 |
   | 週開始日 | 週の初日 |
   | Week番号 | ISO週番号（月曜始まり） |
-- サンプル：`sample-data/cs-performance-sample.xlsx`（架空の8人・6週間。`npm run sample-data` で作り直せる。各社員の傾向は `sample-data/README.md`）
+- サンプル：`sample-data/cs-performance-sample.xlsx`（架空の20人・6週間。`npm run sample-data` で作り直せる。各社員の傾向は `sample-data/README.md`）
 - Excelの読み書きには `exceljs` を使う
 - 2つの観点で集計する
   - 品質（Quality）＝満足度
