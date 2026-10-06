@@ -5,8 +5,8 @@ import { MeetingPanel } from "@/components/MeetingPanel";
 import { WeeklyReportPanel } from "@/components/WeeklyReportPanel";
 
 const TABS = [
-  { key: "weekly", label: "週次パフォーマンスレポート" },
-  { key: "meeting", label: "会議メモから作成" },
+  { key: "weekly", label: "Weekly Performance Report" },
+  { key: "meeting", label: "Meeting Notes" },
 ] as const;
 
 /** 機能の切り替え。切り替えても、それぞれの入力内容は残す */
