@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sample-data": "node scripts/generate-sample-data.mjs"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"
