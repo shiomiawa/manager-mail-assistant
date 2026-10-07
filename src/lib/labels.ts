@@ -87,6 +87,13 @@ export const L = {
   nextCheck: "Next Check",
   whatCustomersAppreciate: "What Customers Appreciate",
   letsTry: "Let's Try",
+  // 称賛メール
+  kudosMail: "Kudos Mail",
+  whatYouDid: "What You Did",
+  whatTheyDid: "What They Did",
+  impact: "Impact",
+  whyItMatters: "Why It Matters",
+  principles: "Principles",
   weeklyReport: "Weekly Report",
   individualReport: "Individual Report",
 } as const;

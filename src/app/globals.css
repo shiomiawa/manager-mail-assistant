@@ -30,6 +30,9 @@
   --briefing: #c0572f;
   --briefing-tint: #fbebe4;
   --briefing-strong: #9e4422;
+  --kudos: #946a0c;
+  --kudos-tint: #f8f0dc;
+  --kudos-strong: #765409;
 
   --accent: var(--weekly);
   --accent-tint: var(--weekly-tint);
@@ -41,6 +44,11 @@
   --accent: var(--weekly);
   --accent-tint: var(--weekly-tint);
   --accent-strong: var(--weekly-strong);
+}
+[data-folder="kudos"] {
+  --accent: var(--kudos);
+  --accent-tint: var(--kudos-tint);
+  --accent-strong: var(--kudos-strong);
 }
 [data-folder="coaching"] {
   --accent: var(--coaching);

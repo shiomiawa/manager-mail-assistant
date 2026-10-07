@@ -27,6 +27,12 @@ const FEATURES = [
     text: "説明会の文字起こしから自分用メモを作り、日程と期限をカレンダーに登録できるファイル（.ics）にします。",
     uses: "使うもの：文字起こし",
   },
+  {
+    folder: "kudos",
+    name: "Kudos Mail",
+    text: "メンバーの具体的な行動をほめるメールを作ります。チームへの紹介メールも作れます。",
+    uses: "使うもの：エピソード（Excelがあれば、お客様のほめ言葉も引用できます）",
+  },
 ] as const;
 
 /** 使い方のページ（ヘッダーの「Help」から開く） */
@@ -76,7 +82,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
               データや会議の文字起こしから、いつも同じ型で、読みやすいメールの下書きを作ります。メールは送りません。できた下書きをコピーして、ふだんのメールソフト（Outlook・Gmail など）から送ってください。
             </p>
           </HelpSection>
-          <HelpSection title="4つのフォルダ">
+          <HelpSection title="5つのフォルダ">
             <div className="grid gap-2 sm:grid-cols-2">
               {FEATURES.map((f) => (
                 <div key={f.folder} data-folder={f.folder} className="overflow-hidden rounded-lg border border-line-soft">

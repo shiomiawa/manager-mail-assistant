@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { BriefingPanel } from "@/components/BriefingPanel";
 import { CoachingPanel } from "@/components/CoachingPanel";
 import { HelpDialog } from "@/components/HelpDialog";
+import { KudosPanel } from "@/components/KudosPanel";
 import { MeetingPanel } from "@/components/MeetingPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { WeeklyReportPanel } from "@/components/WeeklyReportPanel";
@@ -13,6 +14,7 @@ const FOLDERS = [
   { key: "coaching", label: "Survey Coaching" },
   { key: "meeting", label: "Meeting Notes" },
   { key: "briefing", label: "Briefing Notes" },
+  { key: "kudos", label: "Kudos Mail" },
 ] as const;
 type FolderKey = (typeof FOLDERS)[number]["key"];
 
@@ -90,6 +92,9 @@ export function AppTabs() {
           </div>
           <div hidden={active !== "briefing"} className="h-full">
             <BriefingPanel />
+          </div>
+          <div hidden={active !== "kudos"} className="h-full">
+            <KudosPanel />
           </div>
         </main>
       </div>

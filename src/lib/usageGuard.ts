@@ -9,7 +9,7 @@ import { timingSafeEqual } from "node:crypto";
 
 export const PASSCODE_HEADER = "x-demo-passcode";
 
-export type QuotaKind = "weeklyComments" | "meetingDrafts" | "briefingNotes" | "coaching";
+export type QuotaKind = "weeklyComments" | "meetingDrafts" | "briefingNotes" | "coaching" | "kudos";
 
 // 1日の上限の初期値（環境変数で変えられる）
 const DEFAULT_LIMITS: Record<QuotaKind, number> = {
@@ -17,18 +17,21 @@ const DEFAULT_LIMITS: Record<QuotaKind, number> = {
   meetingDrafts: 30, // 会議メモからの下書き
   briefingNotes: 30, // 説明会の自分用メモ
   coaching: 50, // アンケートのコーチング
+  kudos: 50, // 称賛メール
 };
 const LIMIT_ENV: Record<QuotaKind, string> = {
   weeklyComments: "DAILY_LIMIT_WEEKLY_COMMENTS",
   meetingDrafts: "DAILY_LIMIT_MEETING_DRAFTS",
   briefingNotes: "DAILY_LIMIT_BRIEFING_NOTES",
   coaching: "DAILY_LIMIT_COACHING",
+  kudos: "DAILY_LIMIT_KUDOS",
 };
 const LABELS: Record<QuotaKind, string> = {
   weeklyComments: "週次レポートのコメント",
   meetingDrafts: "会議メモからの下書き",
   briefingNotes: "説明会のメモ",
   coaching: "アンケートのコーチング",
+  kudos: "称賛メール",
 };
 
 export function dailyLimit(kind: QuotaKind): number {

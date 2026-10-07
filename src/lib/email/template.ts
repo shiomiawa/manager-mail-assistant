@@ -43,6 +43,7 @@ export const EMAIL_ACCENTS = {
   coaching: "#18866b",
   meeting: "#6a4bc4",
   briefing: "#c0572f",
+  kudos: "#946a0c",
 } as const;
 
 // 帯と見出しの線以外は、どの種類でも同じ落ち着いたグレー

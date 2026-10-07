@@ -185,7 +185,10 @@
         - To Employee（本人向け）：強みとKudosの引用、Let's Try。「悪い」の声の引用とマネージャーの仮説は入れない
         - 読み込んだExcelは Weekly Performance Report と共有する（`src/lib/workbookStore.ts`）
         - 評価軸・行動指針の名前は、AIには文字で書かせ、コードで既知の名前に合わせる（`normalizeAxis`・`matchPrinciple`。合わない行動指針は空にする）
-     2. 称賛メール
+     2. ✅ 称賛メール（2026-10-07 完成。フォルダ「Kudos Mail」・色はゴールド `#946a0c`）
+        - 入力：ほめる人（Excelから選ぶか名前を入力）、具体的な行動（エピソード・必須）、引用するお客様の声（直近4週間の Kudos から3件まで）、チームへの紹介メールを作るか
+        - To Employee：What You Did／Impact／Customer Voice（原文）／Principles。To Team（任意）：What They Did／Why It Matters／Customer Voice。チーム向けには本人の数字を書かない
+        - ほめるのは性格ではなく行動。書かれていないことを足さない・大げさにしない・ほかの人と比べない・名前には「さん」
      3. 次回ミーティング案内
      4. 勤怠フォロー
      5. 前日の自動リマインド

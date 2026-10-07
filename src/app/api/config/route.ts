@@ -12,6 +12,7 @@ export function GET() {
       meetingDrafts: dailyLimit("meetingDrafts"),
       briefingNotes: dailyLimit("briefingNotes"),
       coaching: dailyLimit("coaching"),
+      kudos: dailyLimit("kudos"),
     },
   });
 }
